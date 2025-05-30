@@ -16,13 +16,20 @@ export default function SmartSearch() {
   const [recommendations, setRecommendations] = useState<RecommendationResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout>()
 
-  const recommendationEngine = RecommendationEngine.getInstance()
-  const behaviorTracker = BehaviorTracker.getInstance()
+  const [recommendationEngine, setRecommendationEngine] = useState<RecommendationEngine | null>(null)
+  const [behaviorTracker, setBehaviorTracker] = useState<BehaviorTracker | null>(null)
 
   useEffect(() => {
-    if (query.length > 2) {
+    setMounted(true)
+    setRecommendationEngine(RecommendationEngine.getInstance())
+    setBehaviorTracker(BehaviorTracker.getInstance())
+  }, [])
+
+  useEffect(() => {
+    if (mounted && query.length > 2) {
       // Debounce para evitar demasiadas consultas
       if (debounceRef.current) {
         clearTimeout(debounceRef.current)
@@ -41,10 +48,10 @@ export default function SmartSearch() {
         clearTimeout(debounceRef.current)
       }
     }
-  }, [query])
+  }, [query, mounted])
 
   const generateRecommendations = async () => {
-    if (!query.trim()) return
+    if (!query.trim() || !recommendationEngine || !behaviorTracker) return
 
     setIsLoading(true)
 
@@ -66,12 +73,16 @@ export default function SmartSearch() {
   }
 
   const handleProductClick = (productId: number) => {
-    behaviorTracker.trackProductClick(productId, "smart-search")
+    if (behaviorTracker) {
+      behaviorTracker.trackProductClick(productId, "smart-search")
+    }
     router.push(`/productos/${productId}`)
   }
 
   const handleStoreClick = (storeId: number) => {
-    behaviorTracker.trackProductClick(storeId, "smart-search")
+    if (behaviorTracker) {
+      behaviorTracker.trackProductClick(storeId, "smart-search")
+    }
     router.push(`/tiendas/${storeId}`)
   }
 

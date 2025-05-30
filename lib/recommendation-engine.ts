@@ -12,11 +12,19 @@ export class RecommendationEngine {
   private behaviorTracker: BehaviorTracker
 
   constructor() {
-    this.nlpEngine = NLPEngine.getInstance()
-    this.behaviorTracker = BehaviorTracker.getInstance()
+    // Guard against SSR
+    if (typeof window !== "undefined") {
+      this.nlpEngine = NLPEngine.getInstance()
+      this.behaviorTracker = BehaviorTracker.getInstance()
+    }
   }
 
   public static getInstance(): RecommendationEngine {
+    // Guard against SSR
+    if (typeof window === "undefined") {
+      return new RecommendationEngine()
+    }
+
     if (!RecommendationEngine.instance) {
       RecommendationEngine.instance = new RecommendationEngine()
     }
@@ -25,6 +33,22 @@ export class RecommendationEngine {
 
   // Generar recomendaciones basadas en consulta NLP y comportamiento
   public generateRecommendations(query: string, limit = 10): RecommendationResult {
+    // Guard against SSR
+    if (typeof window === "undefined" || !this.nlpEngine || !this.behaviorTracker) {
+      return {
+        products: [],
+        stores: [],
+        nlpAnalysis: {
+          intent: { intent: "unknown", confidence: 0 },
+          categories: [],
+          keywords: [],
+          urgency: 0,
+          salesType: null,
+        },
+        explanation: "Sistema no disponible en el servidor",
+      }
+    }
+
     // Procesar consulta con NLP
     const nlpResult = this.nlpEngine.processQuery(query)
 

@@ -1,8 +1,34 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import SmartSearch from "@/components/smart-search"
 
 export default function BusquedaInteligentePage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1">
+          <div className="container px-4 md:px-6 py-6 md:py-10">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4">Búsqueda Inteligente</h1>
+              <p className="text-muted-foreground max-w-2xl mx-auto">Cargando sistema de búsqueda inteligente...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />

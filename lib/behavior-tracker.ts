@@ -6,6 +6,11 @@ export class BehaviorTracker {
   private storageKey = "user-behavior-data"
 
   public static getInstance(): BehaviorTracker {
+    // Guard against SSR
+    if (typeof window === "undefined") {
+      return new BehaviorTracker()
+    }
+
     if (!BehaviorTracker.instance) {
       BehaviorTracker.instance = new BehaviorTracker()
     }
