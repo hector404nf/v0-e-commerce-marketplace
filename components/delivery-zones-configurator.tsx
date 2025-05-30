@@ -6,13 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2, Edit, Save, X, Plus, MapPin } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-
-declare global {
-  interface Window {
-    google: any
-    initGoogleMaps: () => void
-  }
-}
+import GoogleMapsLoader from "@/lib/google-maps-loader"
 
 interface DeliveryZone {
   id: string
@@ -60,20 +54,14 @@ export default function DeliveryZonesConfigurator({
   const storeMarkerRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!window.google || !window.google.maps || !window.google.maps.drawing) {
-      loadGoogleMaps()
-    } else {
+    const loader = GoogleMapsLoader.getInstance()
+
+    loader.load(() => {
       initializeMap()
-    }
+    })
 
     // Cleanup function
     return () => {
-      // Don't remove the script as it might be used by other components
-      // Just clean up our callback to prevent memory leaks
-      if (window.initGoogleMaps) {
-        window.initGoogleMaps = () => {}
-      }
-
       // Clean up map instances
       if (mapInstanceRef.current) {
         // Remove all event listeners and overlays
@@ -99,41 +87,6 @@ export default function DeliveryZonesConfigurator({
       renderExistingZones()
     }
   }, [isMapLoaded, zones])
-
-  const loadGoogleMaps = () => {
-    // Check if script is already in the document
-    const existingScript = document.getElementById("google-maps-script")
-    if (existingScript) {
-      // If script exists but callback hasn't been triggered yet, set it again
-      if (window.google && window.google.maps && window.google.maps.drawing) {
-        initializeMap()
-      }
-      return
-    }
-
-    // Add global callback if it doesn't exist
-    if (!window.initGoogleMaps) {
-      window.initGoogleMaps = () => {
-        initializeMap()
-      }
-    }
-
-    const script = document.createElement("script")
-    script.id = "google-maps-script" // Add an ID to identify the script
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCZukkglTPUl6jm2sBfgxikMjlFKwyp5jY&libraries=drawing,geometry&callback=initGoogleMaps`
-    script.async = true
-    script.defer = true
-
-    script.onerror = () => {
-      toast({
-        title: "Error al cargar el mapa",
-        description: "No se pudo cargar Google Maps",
-        variant: "destructive",
-      })
-    }
-
-    document.head.appendChild(script)
-  }
 
   const initializeMap = () => {
     if (!mapRef.current || !window.google || !window.google.maps || !window.google.maps.drawing) {
@@ -169,40 +122,31 @@ export default function DeliveryZonesConfigurator({
       },
     })
 
-    // Drawing Manager - check if drawing library is available
-    if (window.google.maps.drawing && window.google.maps.drawing.DrawingManager) {
-      drawingManagerRef.current = new window.google.maps.drawing.DrawingManager({
-        drawingMode: null,
-        drawingControl: true,
-        drawingControlOptions: {
-          position: window.google.maps.ControlPosition.TOP_CENTER,
-          drawingModes: [window.google.maps.drawing.OverlayType.POLYGON],
-        },
-        polygonOptions: {
-          fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
-          fillOpacity: 0.3,
-          strokeWeight: 2,
-          strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
-          clickable: true,
-          editable: true,
-          draggable: false,
-        },
-      })
+    // Drawing Manager
+    drawingManagerRef.current = new window.google.maps.drawing.DrawingManager({
+      drawingMode: null,
+      drawingControl: true,
+      drawingControlOptions: {
+        position: window.google.maps.ControlPosition.TOP_CENTER,
+        drawingModes: [window.google.maps.drawing.OverlayType.POLYGON],
+      },
+      polygonOptions: {
+        fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        fillOpacity: 0.3,
+        strokeWeight: 2,
+        strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        clickable: true,
+        editable: true,
+        draggable: false,
+      },
+    })
 
-      drawingManagerRef.current.setMap(mapInstanceRef.current)
+    drawingManagerRef.current.setMap(mapInstanceRef.current)
 
-      // Evento cuando se completa un polígono
-      drawingManagerRef.current.addListener("polygoncomplete", (polygon: any) => {
-        handlePolygonComplete(polygon)
-      })
-    } else {
-      console.error("Google Maps Drawing library not available")
-      toast({
-        title: "Error",
-        description: "La biblioteca de dibujo de Google Maps no está disponible",
-        variant: "destructive",
-      })
-    }
+    // Evento cuando se completa un polígono
+    drawingManagerRef.current.addListener("polygoncomplete", (polygon: any) => {
+      handlePolygonComplete(polygon)
+    })
 
     setIsMapLoaded(true)
   }
