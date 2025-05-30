@@ -68,8 +68,28 @@ export default function DeliveryZonesConfigurator({
 
     // Cleanup function
     return () => {
+      // Don't remove the script as it might be used by other components
+      // Just clean up our callback to prevent memory leaks
       if (window.initGoogleMaps) {
-        delete window.initGoogleMaps
+        window.initGoogleMaps = () => {}
+      }
+
+      // Clean up map instances
+      if (mapInstanceRef.current) {
+        // Remove all event listeners and overlays
+        if (drawingManagerRef.current) {
+          drawingManagerRef.current.setMap(null)
+        }
+
+        // Clear all polygons
+        polygonsRef.current.forEach((polygon) => {
+          polygon.setMap(null)
+        })
+
+        // Clear store marker
+        if (storeMarkerRef.current) {
+          storeMarkerRef.current.setMap(null)
+        }
       }
     }
   }, [])
@@ -81,15 +101,28 @@ export default function DeliveryZonesConfigurator({
   }, [isMapLoaded, zones])
 
   const loadGoogleMaps = () => {
+    // Check if script is already in the document
+    const existingScript = document.getElementById("google-maps-script")
+    if (existingScript) {
+      // If script exists but callback hasn't been triggered yet, set it again
+      if (window.google && window.google.maps && window.google.maps.drawing) {
+        initializeMap()
+      }
+      return
+    }
+
+    // Add global callback if it doesn't exist
+    if (!window.initGoogleMaps) {
+      window.initGoogleMaps = () => {
+        initializeMap()
+      }
+    }
+
     const script = document.createElement("script")
+    script.id = "google-maps-script" // Add an ID to identify the script
     script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCZukkglTPUl6jm2sBfgxikMjlFKwyp5jY&libraries=drawing,geometry&callback=initGoogleMaps`
     script.async = true
     script.defer = true
-
-    // Add global callback
-    window.initGoogleMaps = () => {
-      initializeMap()
-    }
 
     script.onerror = () => {
       toast({
