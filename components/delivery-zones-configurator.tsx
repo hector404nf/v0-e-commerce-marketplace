@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2, Edit, Save, X, Plus, MapPin } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 
+declare global {
+  interface Window {
+    google: any
+    initGoogleMaps: () => void
+  }
+}
+
 interface DeliveryZone {
   id: string
   name: string
@@ -20,12 +27,6 @@ interface DeliveryZonesConfiguratorProps {
   storeLocation: [number, number]
   zones: DeliveryZone[]
   onZonesChange: (zones: DeliveryZone[]) => void
-}
-
-declare global {
-  interface Window {
-    google: any
-  }
 }
 
 const ZONE_COLORS = [
@@ -59,10 +60,17 @@ export default function DeliveryZonesConfigurator({
   const storeMarkerRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!window.google || !window.google.maps) {
+    if (!window.google || !window.google.maps || !window.google.maps.drawing) {
       loadGoogleMaps()
     } else {
       initializeMap()
+    }
+
+    // Cleanup function
+    return () => {
+      if (window.initGoogleMaps) {
+        delete window.initGoogleMaps
+      }
     }
   }, [])
 
@@ -74,11 +82,12 @@ export default function DeliveryZonesConfigurator({
 
   const loadGoogleMaps = () => {
     const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCZukkglTPUl6jm2sBfgxikMjlFKwyp5jY&libraries=drawing,geometry`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCZukkglTPUl6jm2sBfgxikMjlFKwyp5jY&libraries=drawing,geometry&callback=initGoogleMaps`
     script.async = true
     script.defer = true
 
-    script.onload = () => {
+    // Add global callback
+    window.initGoogleMaps = () => {
       initializeMap()
     }
 
@@ -94,7 +103,10 @@ export default function DeliveryZonesConfigurator({
   }
 
   const initializeMap = () => {
-    if (!mapRef.current || !window.google) return
+    if (!mapRef.current || !window.google || !window.google.maps || !window.google.maps.drawing) {
+      console.error("Google Maps or Drawing library not loaded")
+      return
+    }
 
     const mapOptions = {
       center: { lat: storeLocation[0], lng: storeLocation[1] },
@@ -115,40 +127,49 @@ export default function DeliveryZonesConfigurator({
         url:
           "data:image/svg+xml;charset=UTF-8," +
           encodeURIComponent(`
-          <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="20" cy="20" r="18" fill="#FF4444" stroke="#FFF" strokeWidth="2"/>
-            <text x="20" y="26" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">🏪</text>
-          </svg>
-        `),
+        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" fill="#FF4444" stroke="#FFF" strokeWidth="2"/>
+          <text x="20" y="26" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">🏪</text>
+        </svg>
+      `),
         scaledSize: new window.google.maps.Size(40, 40),
       },
     })
 
-    // Drawing Manager
-    drawingManagerRef.current = new window.google.maps.drawing.DrawingManager({
-      drawingMode: null,
-      drawingControl: true,
-      drawingControlOptions: {
-        position: window.google.maps.ControlPosition.TOP_CENTER,
-        drawingModes: [window.google.maps.drawing.OverlayType.POLYGON],
-      },
-      polygonOptions: {
-        fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
-        fillOpacity: 0.3,
-        strokeWeight: 2,
-        strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
-        clickable: true,
-        editable: true,
-        draggable: false,
-      },
-    })
+    // Drawing Manager - check if drawing library is available
+    if (window.google.maps.drawing && window.google.maps.drawing.DrawingManager) {
+      drawingManagerRef.current = new window.google.maps.drawing.DrawingManager({
+        drawingMode: null,
+        drawingControl: true,
+        drawingControlOptions: {
+          position: window.google.maps.ControlPosition.TOP_CENTER,
+          drawingModes: [window.google.maps.drawing.OverlayType.POLYGON],
+        },
+        polygonOptions: {
+          fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+          fillOpacity: 0.3,
+          strokeWeight: 2,
+          strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+          clickable: true,
+          editable: true,
+          draggable: false,
+        },
+      })
 
-    drawingManagerRef.current.setMap(mapInstanceRef.current)
+      drawingManagerRef.current.setMap(mapInstanceRef.current)
 
-    // Evento cuando se completa un polígono
-    drawingManagerRef.current.addListener("polygoncomplete", (polygon: any) => {
-      handlePolygonComplete(polygon)
-    })
+      // Evento cuando se completa un polígono
+      drawingManagerRef.current.addListener("polygoncomplete", (polygon: any) => {
+        handlePolygonComplete(polygon)
+      })
+    } else {
+      console.error("Google Maps Drawing library not available")
+      toast({
+        title: "Error",
+        description: "La biblioteca de dibujo de Google Maps no está disponible",
+        variant: "destructive",
+      })
+    }
 
     setIsMapLoaded(true)
   }
@@ -249,8 +270,14 @@ export default function DeliveryZonesConfigurator({
   }
 
   const startDrawing = () => {
-    if (drawingManagerRef.current) {
+    if (drawingManagerRef.current && window.google && window.google.maps && window.google.maps.drawing) {
       drawingManagerRef.current.setDrawingMode(window.google.maps.drawing.OverlayType.POLYGON)
+    } else {
+      toast({
+        title: "Error",
+        description: "El modo de dibujo no está disponible",
+        variant: "destructive",
+      })
     }
   }
 
