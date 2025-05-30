@@ -9,9 +9,16 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { tiendas } from "@/lib/stores-data"
 import { productos } from "@/lib/data"
+import ReviewsSection from "@/components/reviews-section"
+import { useBehaviorTracking } from "@/hooks/use-behavior-tracking"
+import RecommendationsSection from "@/components/recommendations-section"
 
 export default function TiendaPage({ params }: { params: { id: string } }) {
+  const { trackStoreView } = useBehaviorTracking()
   const tienda = tiendas.find((t) => t.id.toString() === params.id)
+
+  // Rastrear vista de la tienda
+  trackStoreView(tienda?.id || 0)
 
   if (!tienda) {
     return notFound()
@@ -129,6 +136,11 @@ export default function TiendaPage({ params }: { params: { id: string } }) {
                   </div>
                 )}
               </div>
+
+              {/* Sección de reseñas de la tienda */}
+              <div className="mt-12">
+                <ReviewsSection storeId={tienda.id} type="store" />
+              </div>
             </div>
 
             {/* Información de contacto */}
@@ -195,6 +207,17 @@ export default function TiendaPage({ params }: { params: { id: string } }) {
 
               <Button className="w-full">Contactar tienda</Button>
             </div>
+          </div>
+
+          {/* Sección de recomendaciones */}
+          <div className="mt-16">
+            <RecommendationsSection
+              currentStoreId={tienda.id}
+              showRecentlyViewed={true}
+              showRecommended={true}
+              showStores={false}
+              maxItems={6}
+            />
           </div>
         </div>
       </main>

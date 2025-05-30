@@ -9,6 +9,7 @@ import { SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
+import RecommendationsSection from "@/components/recommendations-section"
 
 export default function Home() {
   return (
@@ -57,6 +58,11 @@ export default function Home() {
               </Suspense>
             </div>
           </div>
+        </section>
+
+        {/* Sección de recomendaciones */}
+        <section className="container px-4 md:px-6 py-6">
+          <RecommendationsSection showRecentlyViewed={true} showRecommended={true} showStores={true} maxItems={6} />
         </section>
       </main>
       <Footer />

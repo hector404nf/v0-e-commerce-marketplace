@@ -1,56 +1,215 @@
 "use client"
-
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { MapPin, Loader2 } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 
 interface MapSelectorProps {
   onLocationSelect: (coordinates: [number, number]) => void
   initialLocation?: [number, number]
 }
 
+declare global {
+  interface Window {
+    google: any
+    initMap: () => void
+  }
+}
+
 export default function MapSelector({ onLocationSelect, initialLocation }: MapSelectorProps) {
-  const [coordinates, setCoordinates] = useState<[number, number]>(initialLocation || [40.4168, -3.7038]) // Default: Madrid
+  const [coordinates, setCoordinates] = useState<[number, number]>(initialLocation || [40.4168, -3.7038])
   const [isClient, setIsClient] = useState(false)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const [isMapLoaded, setIsMapLoaded] = useState(false)
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<any>(null)
+  const markerRef = useRef<any>(null)
 
   useEffect(() => {
     setIsClient(true)
-
-    // Si hay una ubicación inicial, usarla
     if (initialLocation) {
       setCoordinates(initialLocation)
-    } else {
-      // Intentar obtener la ubicación del usuario
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const newCoords: [number, number] = [position.coords.latitude, position.coords.longitude]
-            setCoordinates(newCoords)
-            onLocationSelect(newCoords)
-          },
-          (error) => {
-            console.error("Error getting location:", error)
-          },
-        )
+    }
+  }, [initialLocation])
+
+  useEffect(() => {
+    if (!isClient) return
+
+    // Verificar si Google Maps ya está cargado
+    if (window.google && window.google.maps) {
+      initializeMap()
+      return
+    }
+
+    // Cargar Google Maps API
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyCZukkglTPUl6jm2sBfgxikMjlFKwyp5jY&libraries=places`
+    script.async = true
+    script.defer = true
+
+    script.onload = () => {
+      initializeMap()
+    }
+
+    script.onerror = () => {
+      toast({
+        title: "Error al cargar el mapa",
+        description: "No se pudo cargar Google Maps. Verifica tu conexión.",
+        variant: "destructive",
+      })
+    }
+
+    document.head.appendChild(script)
+
+    return () => {
+      // Cleanup si es necesario
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
       }
     }
-  }, [initialLocation, onLocationSelect])
+  }, [isClient])
 
-  const handleMapClick = () => {
-    // Mostrar instrucciones para seleccionar ubicación
-    alert("Para seleccionar una ubicación, haz clic en el mapa y luego usa el botón 'Seleccionar esta ubicación'")
-  }
+  const initializeMap = () => {
+    if (!mapRef.current || !window.google) return
 
-  const handleManualLocationSelect = () => {
-    // Simulamos una selección manual de ubicación
-    // En una implementación real, esto vendría de un evento del mapa
-    const newLat = Number.parseFloat(prompt("Introduce la latitud (ej: 40.4168)") || "40.4168")
-    const newLng = Number.parseFloat(prompt("Introduce la longitud (ej: -3.7038)") || "-3.7038")
+    const mapOptions = {
+      center: { lat: coordinates[0], lng: coordinates[1] },
+      zoom: 15,
+      mapTypeControl: true,
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+      gestureHandling: "cooperative",
+      styles: [
+        {
+          featureType: "poi",
+          elementType: "labels",
+          stylers: [{ visibility: "on" }],
+        },
+      ],
+    }
 
-    if (!isNaN(newLat) && !isNaN(newLng)) {
+    // Crear el mapa
+    mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions)
+
+    // Crear el marcador draggable
+    markerRef.current = new window.google.maps.Marker({
+      position: { lat: coordinates[0], lng: coordinates[1] },
+      map: mapInstanceRef.current,
+      draggable: true,
+      title: "Arrastra para cambiar la ubicación",
+      animation: window.google.maps.Animation.DROP,
+    })
+
+    // Evento cuando se arrastra el marcador
+    markerRef.current.addListener("dragend", (event: any) => {
+      const newLat = event.latLng.lat()
+      const newLng = event.latLng.lng()
       const newCoords: [number, number] = [newLat, newLng]
+
       setCoordinates(newCoords)
       onLocationSelect(newCoords)
+
+      toast({
+        title: "Ubicación actualizada",
+        description: "Marcador movido a nueva posición",
+      })
+    })
+
+    // Evento cuando se hace clic en el mapa
+    mapInstanceRef.current.addListener("click", (event: any) => {
+      const newLat = event.latLng.lat()
+      const newLng = event.latLng.lng()
+      const newCoords: [number, number] = [newLat, newLng]
+
+      // Mover el marcador a la nueva posición
+      markerRef.current.setPosition({ lat: newLat, lng: newLng })
+
+      setCoordinates(newCoords)
+      onLocationSelect(newCoords)
+
+      toast({
+        title: "Ubicación actualizada",
+        description: "Marcador movido con clic",
+      })
+    })
+
+    setIsMapLoaded(true)
+  }
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Geolocalización no disponible",
+        description: "Tu navegador no soporta geolocalización",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsGettingLocation(true)
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords
+        const newCoords: [number, number] = [latitude, longitude]
+
+        setCoordinates(newCoords)
+        onLocationSelect(newCoords)
+
+        // Actualizar mapa y marcador si están cargados
+        if (mapInstanceRef.current && markerRef.current) {
+          const newPosition = { lat: latitude, lng: longitude }
+          mapInstanceRef.current.setCenter(newPosition)
+          markerRef.current.setPosition(newPosition)
+        }
+
+        setIsGettingLocation(false)
+
+        toast({
+          title: "Ubicación detectada",
+          description: "Se ha establecido tu ubicación actual",
+        })
+      },
+      (error) => {
+        setIsGettingLocation(false)
+        let errorMessage = "No se pudo obtener tu ubicación"
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Permiso de ubicación denegado. Por favor, permite el acceso a tu ubicación."
+            break
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Ubicación no disponible en este momento"
+            break
+          case error.TIMEOUT:
+            errorMessage = "Tiempo de espera agotado al obtener la ubicación"
+            break
+        }
+
+        toast({
+          title: "Error de ubicación",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      },
+    )
+  }
+
+  const centerMapOnMarker = () => {
+    if (mapInstanceRef.current && markerRef.current) {
+      mapInstanceRef.current.setCenter(markerRef.current.getPosition())
+      mapInstanceRef.current.setZoom(15)
+
+      toast({
+        title: "Mapa centrado",
+        description: "Vista centrada en el marcador",
+      })
     }
   }
 
@@ -58,45 +217,67 @@ export default function MapSelector({ onLocationSelect, initialLocation }: MapSe
     return <div className="h-64 bg-muted rounded-lg animate-pulse" />
   }
 
-  // Construir la URL de OpenStreetMap
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${coordinates[1] - 0.01}%2C${coordinates[0] - 0.01}%2C${coordinates[1] + 0.01}%2C${coordinates[0] + 0.01}&layer=mapnik&marker=${coordinates[0]}%2C${coordinates[1]}`
-
   return (
-    <div className="space-y-2">
-      <div className="h-64 w-full rounded-lg overflow-hidden border">
-        <iframe
-          title="OpenStreetMap"
-          width="100%"
-          height="100%"
-          frameBorder="0"
-          scrolling="no"
-          marginHeight={0}
-          marginWidth={0}
-          src={mapUrl}
-          onClick={handleMapClick}
-          style={{ pointerEvents: "none" }} // Desactivar interacciones con el iframe
-        />
+    <div className="space-y-4">
+      <div className="relative h-64 w-full rounded-lg overflow-hidden border">
+        <div ref={mapRef} className="w-full h-full" />
+
+        {!isMapLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="flex flex-col space-y-2">
+
+      <div className="space-y-3">
         <div className="text-sm">
-          <span className="font-medium">Coordenadas seleccionadas:</span> {coordinates[0].toFixed(6)},{" "}
-          {coordinates[1].toFixed(6)}
+          <span className="font-medium">Coordenadas seleccionadas:</span>{" "}
+          <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
+            {coordinates[0].toFixed(6)}, {coordinates[1].toFixed(6)}
+          </span>
         </div>
-        <Button onClick={handleManualLocationSelect}>Seleccionar ubicación manualmente</Button>
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={getCurrentLocation} disabled={isGettingLocation} className="flex-1">
+            {isGettingLocation ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Obteniendo ubicación...
+              </>
+            ) : (
+              <>
+                <MapPin className="h-4 w-4 mr-2" />
+                Usar mi ubicación actual
+              </>
+            )}
+          </Button>
+
+          <Button onClick={centerMapOnMarker} variant="outline" disabled={!isMapLoaded}>
+            Centrar mapa
+          </Button>
+        </div>
+
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>
+            • <strong>Clic en el mapa:</strong> Mover marcador a esa posición
+          </p>
+          <p>
+            • <strong>Arrastrar marcador:</strong> Posicionar con precisión
+          </p>
+          <p>
+            • <strong>Arrastrar mapa:</strong> Navegar libremente por la zona
+          </p>
+          <p>
+            • <strong>Zoom:</strong> Usar controles del mapa o rueda del mouse
+          </p>
+          <p>
+            • <strong>Vista satélite:</strong> Cambiar tipo de mapa en controles
+          </p>
+        </div>
       </div>
     </div>
-  )
-}
-
-// Componente Button simplificado para evitar dependencias
-function Button({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-      onClick={onClick}
-    >
-      {children}
-    </button>
   )
 }

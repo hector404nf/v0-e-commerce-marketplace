@@ -22,6 +22,8 @@ export default function Navbar() {
     { name: "Hogar", href: "/?categoria=hogar" },
     { name: "Deportes", href: "/?categoria=deportes" },
     { name: "Belleza", href: "/?categoria=belleza" },
+    { name: "Configurar Perfil", href: "/onboarding" },
+    { name: "Iniciar Sesión", href: "/login" },
   ]
 
   const { getTotalItems } = useCart()

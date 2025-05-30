@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useCart } from "@/lib/cart-store"
 import { toast } from "@/components/ui/use-toast"
+import { getDeliveryPriceForLocation } from "@/lib/delivery-zone-detector"
 
 // Importar el mapa dinámicamente para evitar problemas de SSR
 const MapSelector = dynamic(() => import("@/components/map-selector"), {
@@ -77,6 +78,12 @@ export default function CheckoutPage() {
     coordinates: undefined,
   })
 
+  const [detectedDeliveryPrice, setDetectedDeliveryPrice] = useState<{
+    price: number
+    zoneName: string
+    estimatedTime: string
+  } | null>(null)
+
   // Verificar si hay productos de delivery
   const hasDeliveryItems = cartProducts.some((item) => item.producto?.tipoVenta === "delivery")
   const hasDirectItems = cartProducts.some((item) => item.producto?.tipoVenta === "directa")
@@ -134,7 +141,7 @@ export default function CheckoutPage() {
       case 2:
         return paymentMethod
       case 3:
-        if (hasDeliveryItems && deliveryMethod === "delivery") {
+        if ((hasDeliveryItems && deliveryMethod === "delivery") || deliveryMethod === "shipping") {
           return deliveryMethod && address.street && address.number && address.city && address.coordinates
         }
         return deliveryMethod
@@ -143,9 +150,34 @@ export default function CheckoutPage() {
     }
   }
 
+  const handleLocationSelect = (coordinates: [number, number]) => {
+    setAddress((prev) => ({ ...prev, coordinates }))
+
+    // Detectar zona de delivery
+    if (hasDeliveryItems && deliveryMethod === "delivery") {
+      const deliveryInfo = getDeliveryPriceForLocation(coordinates, "current_store")
+      setDetectedDeliveryPrice(deliveryInfo)
+
+      if (deliveryInfo) {
+        toast({
+          title: "Zona de delivery detectada",
+          description: `${deliveryInfo.zoneName} - $${deliveryInfo.price.toLocaleString()}`,
+        })
+      } else {
+        toast({
+          title: "Zona no disponible",
+          description: "Esta ubicación no está en nuestras zonas de delivery",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
   if (cartProducts.length === 0) {
     return null
   }
+
+  const deliveryPrice = detectedDeliveryPrice?.price || (deliveryMethod === "delivery" ? 3.99 : 0)
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -399,16 +431,15 @@ export default function CheckoutPage() {
                             />
                           </div>
 
-                          {deliveryMethod === "delivery" && (
+                          {(deliveryMethod === "delivery" || deliveryMethod === "shipping") && (
                             <div>
                               <Label>Ubicación en el mapa</Label>
                               <p className="text-sm text-muted-foreground mb-2">
-                                Selecciona tu ubicación exacta para una entrega más precisa
+                                Selecciona tu ubicación exacta para una{" "}
+                                {deliveryMethod === "delivery" ? "entrega" : "envío"} más preciso
                               </p>
                               <MapSelector
-                                onLocationSelect={(coordinates) => {
-                                  setAddress((prev) => ({ ...prev, coordinates }))
-                                }}
+                                onLocationSelect={handleLocationSelect}
                                 initialLocation={address.coordinates}
                               />
                             </div>
@@ -491,10 +522,10 @@ export default function CheckoutPage() {
                       <span>${total.toFixed(2)}</span>
                     </div>
 
-                    {deliveryMethod === "delivery" && (
+                    {deliveryMethod === "delivery" && detectedDeliveryPrice && (
                       <div className="flex justify-between text-sm">
-                        <span>Delivery</span>
-                        <span>$3.99</span>
+                        <span>Delivery ({detectedDeliveryPrice.zoneName})</span>
+                        <span>${detectedDeliveryPrice.price.toLocaleString()}</span>
                       </div>
                     )}
 
@@ -509,14 +540,7 @@ export default function CheckoutPage() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>
-                        $
-                        {(
-                          total +
-                          (deliveryMethod === "delivery" ? 3.99 : 0) +
-                          (deliveryMethod === "shipping" ? 5.99 : 0)
-                        ).toFixed(2)}
-                      </span>
+                      <span>${(total + deliveryPrice + (deliveryMethod === "shipping" ? 5.99 : 0)).toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>

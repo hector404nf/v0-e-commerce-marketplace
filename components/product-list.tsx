@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { productos } from "@/lib/data"
 import { useCart } from "@/lib/cart-store"
+import { useBehaviorTracking } from "@/hooks/use-behavior-tracking"
 
 export default function ProductList() {
   const searchParams = useSearchParams()
@@ -18,6 +19,7 @@ export default function ProductList() {
 
   const [productosFiltrados, setProductosFiltrados] = useState(productos)
   const { addItem } = useCart()
+  const { trackProductClick } = useBehaviorTracking()
 
   useEffect(() => {
     let resultado = [...productos]
@@ -77,6 +79,10 @@ export default function ProductList() {
     }
   }
 
+  const handleProductClick = (productId: number) => {
+    trackProductClick(productId, "product-list")
+  }
+
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -99,7 +105,11 @@ export default function ProductList() {
                 </Button>
               </div>
 
-              <Link href={`/productos/${producto.id}`} className="block">
+              <Link
+                href={`/productos/${producto.id}`}
+                className="block"
+                onClick={() => handleProductClick(producto.id)}
+              >
                 <div className="aspect-square relative bg-muted">
                   <Image
                     src={producto.imagen || "/placeholder.svg"}

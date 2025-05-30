@@ -9,7 +9,7 @@ export const productos = [
     descuento: 10,
     categoria: "electronica",
     marca: "samsung",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop",
     especificaciones: [
       "Pantalla AMOLED de 6.1 pulgadas",
       "Procesador Snapdragon 8 Gen 2",
@@ -32,7 +32,7 @@ export const productos = [
     descuento: 0,
     categoria: "electronica",
     marca: "hp",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop",
     especificaciones: [
       "Pantalla táctil de 13.3 pulgadas",
       "Procesador Intel Core i7",
@@ -55,7 +55,7 @@ export const productos = [
     descuento: 20,
     categoria: "deportes",
     marca: "nike",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
     especificaciones: [
       "Tecnología de amortiguación React",
       "Parte superior de malla transpirable",
@@ -78,7 +78,7 @@ export const productos = [
     descuento: 15,
     categoria: "electronica",
     marca: "sony",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=400&fit=crop",
     especificaciones: [
       "Pantalla LED 4K de 55 pulgadas",
       "HDR10+ y Dolby Vision",
@@ -101,7 +101,7 @@ export const productos = [
     descuento: 0,
     categoria: "ropa",
     marca: "adidas",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
     especificaciones: [
       "Tecnología DryFit para secado rápido",
       "Tejido 100% poliéster reciclado",
@@ -124,7 +124,7 @@ export const productos = [
     descuento: 5,
     categoria: "hogar",
     marca: "xiaomi",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
     especificaciones: [
       "Navegación láser LDS",
       "Potencia de succión de 2500Pa",
@@ -147,7 +147,7 @@ export const productos = [
     descuento: 0,
     categoria: "electronica",
     marca: "apple",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
     especificaciones: [
       "Cancelación activa de ruido",
       "Hasta 20 horas de autonomía",
@@ -170,7 +170,7 @@ export const productos = [
     descuento: 0,
     categoria: "belleza",
     marca: "loreal",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop",
     especificaciones: [
       "Fórmula con ácido hialurónico y vitamina C",
       "Hidratación de 48 horas",
@@ -193,7 +193,7 @@ export const productos = [
     descuento: 10,
     categoria: "deportes",
     marca: "trek",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1544191696-15693072e0b5?w=400&h=400&fit=crop",
     especificaciones: [
       "Cuadro de aluminio 6061",
       "Suspensión delantera con 100mm de recorrido",
@@ -216,7 +216,7 @@ export const productos = [
     descuento: 0,
     categoria: "hogar",
     marca: "delonghi",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop",
     especificaciones: [
       "Molinillo integrado con 13 niveles de molienda",
       "15 bares de presión",
@@ -239,7 +239,7 @@ export const productos = [
     descuento: 0,
     categoria: "ropa",
     marca: "zara",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1566479179817-c0b5b4b8b1cc?w=400&h=400&fit=crop",
     especificaciones: [
       "Tejido de poliéster de alta calidad",
       "Forro interior",
@@ -262,7 +262,7 @@ export const productos = [
     descuento: 15,
     categoria: "belleza",
     marca: "maybelline",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop",
     especificaciones: [
       "Paleta de 24 sombras de ojos",
       "Base de maquillaje de larga duración",
@@ -275,7 +275,7 @@ export const productos = [
     stock: 22,
     tiempoEntrega: "Inmediato",
   },
-  // Nuevos productos de comida/delivery
+  // Productos de comida/delivery con imágenes reales
   {
     id: 13,
     nombre: "Pizza Margherita",
@@ -286,7 +286,7 @@ export const productos = [
     descuento: 0,
     categoria: "comida",
     marca: "casa",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=400&fit=crop",
     especificaciones: [
       "Masa artesanal fermentada 24h",
       "Mozzarella de búfala",
@@ -309,7 +309,7 @@ export const productos = [
     descuento: 10,
     categoria: "comida",
     marca: "casa",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
     especificaciones: [
       "Carne angus 200g",
       "Queso cheddar madurado",
@@ -332,7 +332,7 @@ export const productos = [
     descuento: 0,
     categoria: "comida",
     marca: "casa",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=400&fit=crop",
     especificaciones: [
       "20 piezas variadas",
       "Pescado fresco del día",
@@ -355,7 +355,7 @@ export const productos = [
     descuento: 0,
     categoria: "bebidas",
     marca: "casa",
-    imagen: "/placeholder.svg?height=400&width=400",
+    imagen: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop",
     especificaciones: [
       "Granos arábica 100%",
       "Origen: Colombia",
