@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2, Edit, Save, X, Plus, MapPin } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import GoogleMapsLoader from "@/lib/google-maps-loader"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface DeliveryZone {
   id: string
@@ -349,14 +349,10 @@ export default function DeliveryZonesConfigurator({
     }
   }
 
-  const handleModalClose = () => {
-    // Reset drawing when closing modal
-    resetDrawing()
-    setIsModalOpen(false)
-    setNewZoneName("")
-    setNewZonePrice("")
-    setNewZoneTime("")
+  const handleOpenModal = () => {
+    setIsLoadingMap(true)
     setMapError(null)
+    setIsModalOpen(true)
   }
 
   const editingZoneData = zones.find((zone) => zone.id === editingZone)
@@ -365,13 +361,12 @@ export default function DeliveryZonesConfigurator({
     <div className="space-y-6">
       {/* Botón para crear nueva zona */}
       <div className="flex justify-center">
-        <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
-          <DialogTrigger asChild>
-            <Button size="lg">
-              <Plus className="h-4 w-4 mr-2" />
-              Crear Nueva Zona de Delivery
-            </Button>
-          </DialogTrigger>
+        <Button size="lg" onClick={handleOpenModal}>
+          <Plus className="h-4 w-4 mr-2" />
+          Crear Nueva Zona de Delivery
+        </Button>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -464,7 +459,17 @@ export default function DeliveryZonesConfigurator({
 
               {/* Botones de acción */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={handleModalClose}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetDrawing()
+                    setIsModalOpen(false)
+                    setNewZoneName("")
+                    setNewZonePrice("")
+                    setNewZoneTime("")
+                  }}
+                >
                   Cancelar
                 </Button>
                 <Button type="button" onClick={handleSaveZone} disabled={!currentDrawing || !newZoneName.trim()}>
