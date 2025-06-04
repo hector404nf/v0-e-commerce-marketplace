@@ -49,6 +49,8 @@ export default function DeliveryZonesConfigurator({
   const [newZoneTime, setNewZoneTime] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentDrawing, setCurrentDrawing] = useState<any>(null)
+  const [mapError, setMapError] = useState<string | null>(null)
+  const [isLoadingMap, setIsLoadingMap] = useState(true)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
@@ -59,25 +61,36 @@ export default function DeliveryZonesConfigurator({
   useEffect(() => {
     const loader = GoogleMapsLoader.getInstance()
 
+    // Check if API key is configured
+    if (!loader.isApiKeyConfigured()) {
+      setMapError("Google Maps API key not configured")
+      setIsLoadingMap(false)
+      return
+    }
+
+    setIsLoadingMap(true)
+    setMapError(null)
+
     loader.load(() => {
-      initializeMap()
+      try {
+        initializeMap()
+        setIsLoadingMap(false)
+      } catch (error) {
+        console.error("Error initializing map:", error)
+        setMapError("Error initializing map")
+        setIsLoadingMap(false)
+      }
     })
 
-    // Cleanup function
+    // Cleanup function remains the same
     return () => {
-      // Clean up map instances
       if (mapInstanceRef.current) {
-        // Remove all event listeners and overlays
         if (drawingManagerRef.current) {
           drawingManagerRef.current.setMap(null)
         }
-
-        // Clear all polygons
         polygonsRef.current.forEach((polygon) => {
           polygon.setMap(null)
         })
-
-        // Clear store marker
         if (storeMarkerRef.current) {
           storeMarkerRef.current.setMap(null)
         }
@@ -362,11 +375,46 @@ export default function DeliveryZonesConfigurator({
                   </div>
                 </div>
 
-                <div ref={mapRef} className="w-full h-96 rounded-lg border" />
-                {!isMapLoaded && (
-                  <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
-                    <p>Cargando mapa...</p>
+                {mapError ? (
+                  <div className="flex flex-col items-center justify-center h-96 bg-muted rounded-lg border-2 border-dashed">
+                    <div className="text-center space-y-2">
+                      <p className="text-destructive font-medium">Error cargando el mapa</p>
+                      <p className="text-sm text-muted-foreground">{mapError}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setMapError(null)
+                          setIsLoadingMap(true)
+                          const loader = GoogleMapsLoader.getInstance()
+                          loader.load(() => {
+                            try {
+                              initializeMap()
+                              setIsLoadingMap(false)
+                            } catch (error) {
+                              console.error("Error initializing map:", error)
+                              setMapError("Error initializing map")
+                              setIsLoadingMap(false)
+                            }
+                          })
+                        }}
+                      >
+                        Reintentar
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div ref={mapRef} className="w-full h-96 rounded-lg border" />
+                    {isLoadingMap && (
+                      <div className="flex items-center justify-center h-96 bg-muted rounded-lg absolute inset-0">
+                        <div className="text-center space-y-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                          <p>Cargando mapa...</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <p className="text-sm text-muted-foreground">
