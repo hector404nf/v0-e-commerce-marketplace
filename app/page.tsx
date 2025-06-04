@@ -9,6 +9,7 @@ import { SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Plus } from "lucide-react"
+import RecommendationsSection from "@/components/recommendations-section"
 
 export default function Home() {
   return (
@@ -31,7 +32,9 @@ export default function Home() {
                     <SheetTitle>Filtros</SheetTitle>
                   </SheetHeader>
                   <div className="py-4">
-                    <ProductFilters />
+                    <Suspense fallback={<div>Cargando filtros...</div>}>
+                      <ProductFilters />
+                    </Suspense>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -39,7 +42,9 @@ export default function Home() {
 
             {/* Filtros para desktop */}
             <aside className="hidden md:block w-64 shrink-0">
-              <ProductFilters />
+              <Suspense fallback={<div>Cargando filtros...</div>}>
+                <ProductFilters />
+              </Suspense>
             </aside>
 
             <div className="flex-1">
@@ -57,6 +62,13 @@ export default function Home() {
               </Suspense>
             </div>
           </div>
+        </section>
+
+        {/* Sección de recomendaciones */}
+        <section className="container px-4 md:px-6 py-6">
+          <Suspense fallback={<div>Cargando recomendaciones...</div>}>
+            <RecommendationsSection showRecentlyViewed={true} showRecommended={true} showStores={true} maxItems={6} />
+          </Suspense>
         </section>
       </main>
       <Footer />

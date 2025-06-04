@@ -14,10 +14,17 @@ import { productos } from "@/lib/data"
 import { tiendas } from "@/lib/stores-data"
 import { useCart } from "@/lib/cart-store"
 import { toast } from "@/components/ui/use-toast"
+import ReviewsSection from "@/components/reviews-section"
+import { useBehaviorTracking } from "@/hooks/use-behavior-tracking"
+import RecommendationsSection from "@/components/recommendations-section"
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const { addItem } = useCart()
+  const { trackProductView, trackAddToCart } = useBehaviorTracking()
   const producto = productos.find((p) => p.id.toString() === params.id)
+
+  // Rastrear vista del producto
+  trackProductView(producto?.id || 0)
 
   if (!producto) {
     return notFound()
@@ -71,6 +78,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const handleAddToCart = () => {
     addItem(producto.id)
+    trackAddToCart(producto.id)
     toast({
       title: "Producto añadido al carrito",
       description: `${producto.nombre} ha sido añadido a tu carrito.`,
@@ -228,47 +236,20 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold mb-6">Productos relacionados</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {productos
-                .filter((p) => p.categoria === producto.categoria && p.id !== producto.id)
-                .slice(0, 4)
-                .map((p) => {
-                  const relatedTipoInfo = getTipoVentaInfo(p.tipoVenta)
-                  const RelatedIconComponent = relatedTipoInfo.icon
+          {/* Sección de reseñas */}
+          <div className="mt-12">
+            <ReviewsSection productId={producto.id} type="product" />
+          </div>
 
-                  return (
-                    <Link
-                      key={p.id}
-                      href={`/productos/${p.id}`}
-                      className="group border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      <div className="aspect-square relative bg-muted">
-                        <Image
-                          src={p.imagen || "/placeholder.svg"}
-                          alt={p.nombre}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <div className="flex items-center gap-1 mb-2">
-                          <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${relatedTipoInfo.bgColor}`}>
-                            <RelatedIconComponent className={`h-3 w-3 ${relatedTipoInfo.textColor}`} />
-                            <span className={`text-xs font-medium ${relatedTipoInfo.textColor}`}>
-                              {relatedTipoInfo.label}
-                            </span>
-                          </div>
-                        </div>
-                        <h3 className="font-medium truncate">{p.nombre}</h3>
-                        <p className="text-muted-foreground text-sm truncate">{p.descripcion}</p>
-                        <p className="font-semibold mt-2">${p.precio.toFixed(2)}</p>
-                      </div>
-                    </Link>
-                  )
-                })}
-            </div>
+          {/* Sección de recomendaciones */}
+          <div className="mt-16">
+            <RecommendationsSection
+              currentProductId={producto.id}
+              showRecentlyViewed={true}
+              showRecommended={true}
+              showStores={true}
+              maxItems={8}
+            />
           </div>
         </div>
       </main>
