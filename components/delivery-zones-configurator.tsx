@@ -42,70 +42,57 @@ export default function DeliveryZonesConfigurator({
   zones,
   onZonesChange,
 }: DeliveryZonesConfiguratorProps) {
-  // Modificar el estado isModalOpen para reinicializar el mapa cuando se abre el modal
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  // Agregar un efecto para reinicializar el mapa cuando se abre el modal
-  useEffect(() => {
-    if (isModalOpen && mapRef.current) {
-      // Pequeño retraso para asegurar que el DOM esté listo
-      const timer = setTimeout(() => {
-        if (window.google && window.google.maps) {
-          // Si Google Maps ya está cargado, solo reinicializar el mapa
-          if (mapInstanceRef.current) {
-            // Limpiar el mapa anterior
-            if (drawingManagerRef.current) {
-              drawingManagerRef.current.setMap(null)
-            }
-
-            // Forzar redimensionamiento del mapa
-            window.google.maps.event.trigger(mapInstanceRef.current, "resize")
-
-            // Centrar el mapa en la ubicación de la tienda
-            if (storeLocation) {
-              mapInstanceRef.current.setCenter({ lat: storeLocation[0], lng: storeLocation[1] })
-            }
-          } else {
-            // Inicializar el mapa si no existe
-            initializeMap()
-          }
-          setIsLoadingMap(false)
-        } else {
-          // Si Google Maps no está cargado, intentar cargarlo
-          const loader = GoogleMapsLoader.getInstance()
-          loader.load(() => {
-            try {
-              initializeMap()
-              setIsLoadingMap(false)
-            } catch (error) {
-              console.error("Error initializing map:", error)
-              setMapError("Error initializing map")
-              setIsLoadingMap(false)
-            }
-          })
-        }
-      }, 300)
-
-      return () => clearTimeout(timer)
-    }
-  }, [isModalOpen, storeLocation])
-
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [editingZone, setEditingZone] = useState<string | null>(null)
   const [newZoneName, setNewZoneName] = useState("")
   const [newZonePrice, setNewZonePrice] = useState("")
   const [newZoneTime, setNewZoneTime] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentDrawing, setCurrentDrawing] = useState<any>(null)
   const [mapError, setMapError] = useState<string | null>(null)
-  const [isLoadingMap, setIsLoadingMap] = useState(true)
+  const [isLoadingMap, setIsLoadingMap] = useState(false)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const drawingManagerRef = useRef<any>(null)
   const polygonsRef = useRef<Map<string, any>>(new Map())
   const storeMarkerRef = useRef<any>(null)
+  const mapInitializedRef = useRef(false)
 
+  // Effect para inicializar el mapa cuando se abre el modal
   useEffect(() => {
+    if (isModalOpen && !mapInitializedRef.current) {
+      initializeMapInModal()
+    }
+  }, [isModalOpen])
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      // Cleanup map instances when component unmounts
+      if (mapInstanceRef.current) {
+        if (drawingManagerRef.current) {
+          drawingManagerRef.current.setMap(null)
+          drawingManagerRef.current = null
+        }
+
+        polygonsRef.current.forEach((polygon) => {
+          polygon.setMap(null)
+        })
+        polygonsRef.current.clear()
+
+        if (storeMarkerRef.current) {
+          storeMarkerRef.current.setMap(null)
+          storeMarkerRef.current = null
+        }
+
+        mapInstanceRef.current = null
+      }
+      mapInitializedRef.current = false
+    }
+  }, [])
+
+  const initializeMapInModal = () => {
     const loader = GoogleMapsLoader.getInstance()
 
     // Check if API key is configured
@@ -118,43 +105,41 @@ export default function DeliveryZonesConfigurator({
     setIsLoadingMap(true)
     setMapError(null)
 
-    loader.load(() => {
-      try {
-        initializeMap()
-        setIsLoadingMap(false)
-      } catch (error) {
-        console.error("Error initializing map:", error)
-        setMapError("Error initializing map")
-        setIsLoadingMap(false)
-      }
-    })
-
-    // Cleanup function remains the same
-    return () => {
-      if (mapInstanceRef.current) {
-        if (drawingManagerRef.current) {
-          drawingManagerRef.current.setMap(null)
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      loader.load(() => {
+        try {
+          if (mapRef.current && !mapInitializedRef.current) {
+            initializeMap()
+            mapInitializedRef.current = true
+          }
+          setIsLoadingMap(false)
+        } catch (error) {
+          console.error("Error initializing map:", error)
+          setMapError("Error initializing map")
+          setIsLoadingMap(false)
         }
-        polygonsRef.current.forEach((polygon) => {
-          polygon.setMap(null)
-        })
-        if (storeMarkerRef.current) {
-          storeMarkerRef.current.setMap(null)
-        }
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (isMapLoaded && zones.length > 0) {
-      renderExistingZones()
-    }
-  }, [isMapLoaded, zones])
+      })
+    }, 100)
+  }
 
   const initializeMap = () => {
     if (!mapRef.current || !window.google || !window.google.maps || !window.google.maps.drawing) {
       console.error("Google Maps or Drawing library not loaded")
-      return
+      throw new Error("Google Maps not available")
+    }
+
+    // Clear any existing map instance
+    if (mapInstanceRef.current) {
+      if (drawingManagerRef.current) {
+        drawingManagerRef.current.setMap(null)
+      }
+      polygonsRef.current.forEach((polygon) => {
+        polygon.setMap(null)
+      })
+      if (storeMarkerRef.current) {
+        storeMarkerRef.current.setMap(null)
+      }
     }
 
     const mapOptions = {
@@ -225,10 +210,14 @@ export default function DeliveryZonesConfigurator({
       setCurrentDrawing({ type: "circle", shape: circle })
     })
 
+    // Render existing zones
+    renderExistingZones()
     setIsMapLoaded(true)
   }
 
   const renderExistingZones = () => {
+    if (!mapInstanceRef.current) return
+
     zones.forEach((zone) => {
       if (!polygonsRef.current.has(zone.id)) {
         const polygon = new window.google.maps.Polygon({
@@ -340,7 +329,9 @@ export default function DeliveryZonesConfigurator({
     setIsModalOpen(false)
 
     // Desactivar modo de dibujo
-    drawingManagerRef.current.setDrawingMode(null)
+    if (drawingManagerRef.current) {
+      drawingManagerRef.current.setDrawingMode(null)
+    }
 
     toast({
       title: "Zona creada",
@@ -353,14 +344,19 @@ export default function DeliveryZonesConfigurator({
       currentDrawing.shape.setMap(null)
       setCurrentDrawing(null)
     }
-    drawingManagerRef.current.setDrawingMode(null)
+    if (drawingManagerRef.current) {
+      drawingManagerRef.current.setDrawingMode(null)
+    }
   }
 
-  // Modificar la función que maneja la apertura del modal
-  const handleOpenModal = () => {
-    setIsLoadingMap(true)
+  const handleModalClose = () => {
+    // Reset drawing when closing modal
+    resetDrawing()
+    setIsModalOpen(false)
+    setNewZoneName("")
+    setNewZonePrice("")
+    setNewZoneTime("")
     setMapError(null)
-    setIsModalOpen(true)
   }
 
   const editingZoneData = zones.find((zone) => zone.id === editingZone)
@@ -369,9 +365,9 @@ export default function DeliveryZonesConfigurator({
     <div className="space-y-6">
       {/* Botón para crear nueva zona */}
       <div className="flex justify-center">
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
           <DialogTrigger asChild>
-            <Button size="lg" onClick={handleOpenModal}>
+            <Button size="lg">
               <Plus className="h-4 w-4 mr-2" />
               Crear Nueva Zona de Delivery
             </Button>
@@ -439,18 +435,8 @@ export default function DeliveryZonesConfigurator({
                         size="sm"
                         onClick={() => {
                           setMapError(null)
-                          setIsLoadingMap(true)
-                          const loader = GoogleMapsLoader.getInstance()
-                          loader.load(() => {
-                            try {
-                              initializeMap()
-                              setIsLoadingMap(false)
-                            } catch (error) {
-                              console.error("Error initializing map:", error)
-                              setMapError("Error initializing map")
-                              setIsLoadingMap(false)
-                            }
-                          })
+                          mapInitializedRef.current = false
+                          initializeMapInModal()
                         }}
                       >
                         Reintentar
@@ -478,17 +464,7 @@ export default function DeliveryZonesConfigurator({
 
               {/* Botones de acción */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    resetDrawing()
-                    setIsModalOpen(false)
-                    setNewZoneName("")
-                    setNewZonePrice("")
-                    setNewZoneTime("")
-                  }}
-                >
+                <Button type="button" variant="outline" onClick={handleModalClose}>
                   Cancelar
                 </Button>
                 <Button type="button" onClick={handleSaveZone} disabled={!currentDrawing || !newZoneName.trim()}>
