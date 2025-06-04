@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2, Edit, Save, X, Plus, MapPin } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import GoogleMapsLoader from "@/lib/google-maps-loader"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface DeliveryZone {
   id: string
@@ -46,6 +47,8 @@ export default function DeliveryZonesConfigurator({
   const [newZoneName, setNewZoneName] = useState("")
   const [newZonePrice, setNewZonePrice] = useState("")
   const [newZoneTime, setNewZoneTime] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [currentDrawing, setCurrentDrawing] = useState<any>(null)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
@@ -128,9 +131,18 @@ export default function DeliveryZonesConfigurator({
       drawingControl: true,
       drawingControlOptions: {
         position: window.google.maps.ControlPosition.TOP_CENTER,
-        drawingModes: [window.google.maps.drawing.OverlayType.POLYGON],
+        drawingModes: [window.google.maps.drawing.OverlayType.POLYGON, window.google.maps.drawing.OverlayType.CIRCLE],
       },
       polygonOptions: {
+        fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        fillOpacity: 0.3,
+        strokeWeight: 2,
+        strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        clickable: true,
+        editable: true,
+        draggable: false,
+      },
+      circleOptions: {
         fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
         fillOpacity: 0.3,
         strokeWeight: 2,
@@ -145,55 +157,15 @@ export default function DeliveryZonesConfigurator({
 
     // Evento cuando se completa un polígono
     drawingManagerRef.current.addListener("polygoncomplete", (polygon: any) => {
-      handlePolygonComplete(polygon)
+      setCurrentDrawing({ type: "polygon", shape: polygon })
+    })
+
+    // Evento cuando se completa un círculo
+    drawingManagerRef.current.addListener("circlecomplete", (circle: any) => {
+      setCurrentDrawing({ type: "circle", shape: circle })
     })
 
     setIsMapLoaded(true)
-  }
-
-  const handlePolygonComplete = (polygon: any) => {
-    const path = polygon.getPath()
-    const coordinates: Array<{ lat: number; lng: number }> = []
-
-    for (let i = 0; i < path.getLength(); i++) {
-      const point = path.getAt(i)
-      coordinates.push({ lat: point.lat(), lng: point.lng() })
-    }
-
-    // Crear nueva zona
-    const newZone: DeliveryZone = {
-      id: `zone_${Date.now()}`,
-      name: newZoneName || `Zona ${zones.length + 1}`,
-      price: Number.parseFloat(newZonePrice) || 5000,
-      estimatedTime: newZoneTime || "30-45 min",
-      coordinates,
-      color: ZONE_COLORS[zones.length % ZONE_COLORS.length],
-    }
-
-    // Guardar referencia del polígono
-    polygonsRef.current.set(newZone.id, polygon)
-
-    // Agregar evento de clic al polígono
-    polygon.addListener("click", () => {
-      setEditingZone(newZone.id)
-    })
-
-    // Actualizar zonas
-    const updatedZones = [...zones, newZone]
-    onZonesChange(updatedZones)
-
-    // Limpiar formulario
-    setNewZoneName("")
-    setNewZonePrice("")
-    setNewZoneTime("")
-
-    // Desactivar modo de dibujo
-    drawingManagerRef.current.setDrawingMode(null)
-
-    toast({
-      title: "Zona creada",
-      description: `Zona "${newZone.name}" agregada correctamente`,
-    })
   }
 
   const renderExistingZones = () => {
@@ -246,82 +218,186 @@ export default function DeliveryZonesConfigurator({
     })
   }
 
-  const startDrawing = () => {
-    if (drawingManagerRef.current && window.google && window.google.maps && window.google.maps.drawing) {
-      drawingManagerRef.current.setDrawingMode(window.google.maps.drawing.OverlayType.POLYGON)
-    } else {
+  const handleSaveZone = () => {
+    if (!currentDrawing) {
       toast({
         title: "Error",
-        description: "El modo de dibujo no está disponible",
+        description: "Debes dibujar una zona primero",
         variant: "destructive",
       })
+      return
     }
+
+    const coordinates: Array<{ lat: number; lng: number }> = []
+
+    if (currentDrawing.type === "polygon") {
+      const path = currentDrawing.shape.getPath()
+      for (let i = 0; i < path.getLength(); i++) {
+        const point = path.getAt(i)
+        coordinates.push({ lat: point.lat(), lng: point.lng() })
+      }
+    } else if (currentDrawing.type === "circle") {
+      const center = currentDrawing.shape.getCenter()
+      const radius = currentDrawing.shape.getRadius()
+
+      // Convertir círculo a polígono para almacenamiento
+      const numPoints = 32
+      for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * 2 * Math.PI
+        const lat = center.lat() + (radius / 111320) * Math.cos(angle)
+        const lng = center.lng() + (radius / (111320 * Math.cos((center.lat() * Math.PI) / 180))) * Math.sin(angle)
+        coordinates.push({ lat, lng })
+      }
+    }
+
+    // Crear nueva zona
+    const newZone: DeliveryZone = {
+      id: `zone_${Date.now()}`,
+      name: newZoneName || `Zona ${zones.length + 1}`,
+      price: Number.parseFloat(newZonePrice) || 5000,
+      estimatedTime: newZoneTime || "30-45 min",
+      coordinates,
+      color: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+    }
+
+    // Guardar referencia del shape
+    polygonsRef.current.set(newZone.id, currentDrawing.shape)
+
+    // Agregar evento de clic al shape
+    currentDrawing.shape.addListener("click", () => {
+      setEditingZone(newZone.id)
+    })
+
+    // Actualizar zonas
+    const updatedZones = [...zones, newZone]
+    onZonesChange(updatedZones)
+
+    // Limpiar formulario y cerrar modal
+    setNewZoneName("")
+    setNewZonePrice("")
+    setNewZoneTime("")
+    setCurrentDrawing(null)
+    setIsModalOpen(false)
+
+    // Desactivar modo de dibujo
+    drawingManagerRef.current.setDrawingMode(null)
+
+    toast({
+      title: "Zona creada",
+      description: `Zona "${newZone.name}" agregada correctamente`,
+    })
+  }
+
+  const resetDrawing = () => {
+    if (currentDrawing) {
+      currentDrawing.shape.setMap(null)
+      setCurrentDrawing(null)
+    }
+    drawingManagerRef.current.setDrawingMode(null)
   }
 
   const editingZoneData = zones.find((zone) => zone.id === editingZone)
 
   return (
     <div className="space-y-6">
-      {/* Formulario para nueva zona */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Configurar Nueva Zona
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="zoneName">Nombre de la zona</Label>
-              <Input
-                id="zoneName"
-                value={newZoneName}
-                onChange={(e) => setNewZoneName(e.target.value)}
-                placeholder="Centro, Norte, Sur..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="zonePrice">Precio de delivery ($)</Label>
-              <Input
-                id="zonePrice"
-                type="number"
-                value={newZonePrice}
-                onChange={(e) => setNewZonePrice(e.target.value)}
-                placeholder="5000"
-              />
-            </div>
-            <div>
-              <Label htmlFor="zoneTime">Tiempo estimado</Label>
-              <Input
-                id="zoneTime"
-                value={newZoneTime}
-                onChange={(e) => setNewZoneTime(e.target.value)}
-                placeholder="30-45 min"
-              />
-            </div>
-          </div>
-          <Button onClick={startDrawing} className="w-full">
-            <Plus className="h-4 w-4 mr-2" />
-            Dibujar Nueva Zona en el Mapa
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Botón para crear nueva zona */}
+      <div className="flex justify-center">
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg">
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Nueva Zona de Delivery
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Configurar Nueva Zona de Delivery
+              </DialogTitle>
+            </DialogHeader>
 
-      {/* Mapa */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Mapa de Zonas de Delivery</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div ref={mapRef} className="w-full h-96 rounded-lg" />
-          {!isMapLoaded && (
-            <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
-              <p>Cargando mapa...</p>
+            <div className="space-y-6">
+              {/* Formulario */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="zoneName">Nombre de la zona</Label>
+                  <Input
+                    id="zoneName"
+                    value={newZoneName}
+                    onChange={(e) => setNewZoneName(e.target.value)}
+                    placeholder="Centro, Norte, Sur..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zonePrice">Precio de delivery ($)</Label>
+                  <Input
+                    id="zonePrice"
+                    type="number"
+                    value={newZonePrice}
+                    onChange={(e) => setNewZonePrice(e.target.value)}
+                    placeholder="5000"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zoneTime">Tiempo estimado</Label>
+                  <Input
+                    id="zoneTime"
+                    value={newZoneTime}
+                    onChange={(e) => setNewZoneTime(e.target.value)}
+                    placeholder="30-45 min"
+                  />
+                </div>
+              </div>
+
+              {/* Mapa */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label className="text-base font-medium">Dibuja la zona en el mapa</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={resetDrawing} disabled={!currentDrawing}>
+                      <X className="h-4 w-4 mr-2" />
+                      Resetear Dibujo
+                    </Button>
+                  </div>
+                </div>
+
+                <div ref={mapRef} className="w-full h-96 rounded-lg border" />
+                {!isMapLoaded && (
+                  <div className="flex items-center justify-center h-96 bg-muted rounded-lg">
+                    <p>Cargando mapa...</p>
+                  </div>
+                )}
+
+                <p className="text-sm text-muted-foreground">
+                  Usa las herramientas del mapa para dibujar polígonos o círculos que representen tu zona de delivery.
+                </p>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetDrawing()
+                    setIsModalOpen(false)
+                    setNewZoneName("")
+                    setNewZonePrice("")
+                    setNewZoneTime("")
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button type="button" onClick={handleSaveZone} disabled={!currentDrawing || !newZoneName.trim()}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Zona
+                </Button>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       {/* Lista de zonas */}
       <Card>
@@ -331,7 +407,7 @@ export default function DeliveryZonesConfigurator({
         <CardContent>
           {zones.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              No hay zonas configuradas. Dibuja una zona en el mapa para comenzar.
+              No hay zonas configuradas. Haz clic en "Crear Nueva Zona" para comenzar.
             </p>
           ) : (
             <div className="space-y-3">
