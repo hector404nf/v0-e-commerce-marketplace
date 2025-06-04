@@ -29,6 +29,7 @@ class GoogleMapsLoader {
   load(callback: GoogleMapsCallback): void {
     // If already loaded, call callback immediately
     if (this.isLoaded && window.google && window.google.maps && window.google.maps.drawing) {
+      console.log("Google Maps already loaded, calling callback immediately")
       callback()
       return
     }
@@ -38,19 +39,20 @@ class GoogleMapsLoader {
 
     // If already loading, just wait
     if (this.isLoading) {
+      console.log("Google Maps already loading, waiting...")
       return
     }
 
-    // Check if script already exists
+    // Check if script already exists but Google Maps is not fully initialized
     const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
-    if (existingScript) {
-      // Script exists but might not be fully loaded
-      this.waitForGoogleMaps()
-      return
+    if (existingScript && !window.google?.maps?.drawing) {
+      console.log("Google Maps script exists but not fully initialized, removing and reloading")
+      existingScript.remove()
     }
 
     // Start loading
     this.isLoading = true
+    this.loadAttempts = 0
     this.loadScript()
   }
 

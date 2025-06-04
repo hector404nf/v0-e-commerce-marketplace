@@ -42,12 +42,59 @@ export default function DeliveryZonesConfigurator({
   zones,
   onZonesChange,
 }: DeliveryZonesConfiguratorProps) {
+  // Modificar el estado isModalOpen para reinicializar el mapa cuando se abre el modal
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Agregar un efecto para reinicializar el mapa cuando se abre el modal
+  useEffect(() => {
+    if (isModalOpen && mapRef.current) {
+      // Pequeño retraso para asegurar que el DOM esté listo
+      const timer = setTimeout(() => {
+        if (window.google && window.google.maps) {
+          // Si Google Maps ya está cargado, solo reinicializar el mapa
+          if (mapInstanceRef.current) {
+            // Limpiar el mapa anterior
+            if (drawingManagerRef.current) {
+              drawingManagerRef.current.setMap(null)
+            }
+
+            // Forzar redimensionamiento del mapa
+            window.google.maps.event.trigger(mapInstanceRef.current, "resize")
+
+            // Centrar el mapa en la ubicación de la tienda
+            if (storeLocation) {
+              mapInstanceRef.current.setCenter({ lat: storeLocation[0], lng: storeLocation[1] })
+            }
+          } else {
+            // Inicializar el mapa si no existe
+            initializeMap()
+          }
+          setIsLoadingMap(false)
+        } else {
+          // Si Google Maps no está cargado, intentar cargarlo
+          const loader = GoogleMapsLoader.getInstance()
+          loader.load(() => {
+            try {
+              initializeMap()
+              setIsLoadingMap(false)
+            } catch (error) {
+              console.error("Error initializing map:", error)
+              setMapError("Error initializing map")
+              setIsLoadingMap(false)
+            }
+          })
+        }
+      }, 300)
+
+      return () => clearTimeout(timer)
+    }
+  }, [isModalOpen, storeLocation])
+
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [editingZone, setEditingZone] = useState<string | null>(null)
   const [newZoneName, setNewZoneName] = useState("")
   const [newZonePrice, setNewZonePrice] = useState("")
   const [newZoneTime, setNewZoneTime] = useState("")
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentDrawing, setCurrentDrawing] = useState<any>(null)
   const [mapError, setMapError] = useState<string | null>(null)
   const [isLoadingMap, setIsLoadingMap] = useState(true)
@@ -309,6 +356,13 @@ export default function DeliveryZonesConfigurator({
     drawingManagerRef.current.setDrawingMode(null)
   }
 
+  // Modificar la función que maneja la apertura del modal
+  const handleOpenModal = () => {
+    setIsLoadingMap(true)
+    setMapError(null)
+    setIsModalOpen(true)
+  }
+
   const editingZoneData = zones.find((zone) => zone.id === editingZone)
 
   return (
@@ -317,7 +371,7 @@ export default function DeliveryZonesConfigurator({
       <div className="flex justify-center">
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogTrigger asChild>
-            <Button size="lg">
+            <Button size="lg" onClick={handleOpenModal}>
               <Plus className="h-4 w-4 mr-2" />
               Crear Nueva Zona de Delivery
             </Button>
@@ -404,17 +458,17 @@ export default function DeliveryZonesConfigurator({
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="relative w-full h-96">
                     <div ref={mapRef} className="w-full h-96 rounded-lg border" />
                     {isLoadingMap && (
-                      <div className="flex items-center justify-center h-96 bg-muted rounded-lg absolute inset-0">
+                      <div className="flex items-center justify-center absolute inset-0 bg-background/80 rounded-lg">
                         <div className="text-center space-y-2">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                           <p>Cargando mapa...</p>
                         </div>
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
 
                 <p className="text-sm text-muted-foreground">
