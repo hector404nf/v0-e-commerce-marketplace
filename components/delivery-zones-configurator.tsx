@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
+import type React from "react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,9 +10,9 @@ import { Trash2, Edit, Save, X, Plus, MapPin, Palette, Pipette } from "lucide-re
 import { toast } from "@/components/ui/use-toast"
 import GoogleMapsLoader from "@/lib/google-maps-loader"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface DeliveryZone {
   id: string
@@ -27,7 +29,14 @@ interface DeliveryZonesConfiguratorProps {
   onZonesChange: (zones: DeliveryZone[]) => void
 }
 
-const PRESET_COLORS = [
+interface ColorOption {
+  name: string
+  light: string
+  dark: string
+  isCustom?: boolean
+}
+
+const PRESET_COLORS: ColorOption[] = [
   { name: "Rojo", light: "#FF6B6B", dark: "#FF5252" },
   { name: "Turquesa", light: "#4ECDC4", dark: "#26A69A" },
   { name: "Azul", light: "#45B7D1", dark: "#42A5F5" },
@@ -48,6 +57,138 @@ const PRESET_COLORS = [
   { name: "Índigo", light: "#7986CB", dark: "#5C6BC0" },
 ]
 
+// Color picker component
+const ColorPicker = ({
+  color,
+  onChange,
+  onClose,
+}: {
+  color: string
+  onChange: (color: string) => void
+  onClose: () => void
+}) => {
+  const [tempColor, setTempColor] = useState(color)
+  const [hexInput, setHexInput] = useState(color)
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value
+    setTempColor(newColor)
+    setHexInput(newColor)
+  }
+
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setHexInput(value)
+
+    // Validate hex color
+    if (/^#[0-9A-F]{6}$/i.test(value)) {
+      setTempColor(value)
+    }
+  }
+
+  const handleApply = () => {
+    onChange(tempColor)
+    onClose()
+  }
+
+  // Predefined quick colors
+  const quickColors = [
+    "#FF0000",
+    "#00FF00",
+    "#0000FF",
+    "#FFFF00",
+    "#FF00FF",
+    "#00FFFF",
+    "#FFA500",
+    "#800080",
+    "#008000",
+    "#000080",
+    "#800000",
+    "#008080",
+    "#C0C0C0",
+    "#808080",
+    "#000000",
+    "#FFFFFF",
+    "#FFB6C1",
+    "#98FB98",
+  ]
+
+  return (
+    <div className="p-4 space-y-4 w-80">
+      <div className="space-y-3">
+        <Label>Selector de Color</Label>
+
+        {/* Native color picker */}
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={tempColor}
+            onChange={handleColorChange}
+            className="w-16 h-16 rounded-lg border-2 border-border cursor-pointer"
+          />
+          <div className="flex-1 space-y-2">
+            <Label htmlFor="hex-input" className="text-sm">
+              Código Hex
+            </Label>
+            <Input
+              id="hex-input"
+              value={hexInput}
+              onChange={handleHexInputChange}
+              placeholder="#FF0000"
+              className="font-mono text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Quick color selection */}
+        <div className="space-y-2">
+          <Label className="text-sm">Colores Rápidos</Label>
+          <div className="grid grid-cols-6 gap-2">
+            {quickColors.map((quickColor, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => {
+                  setTempColor(quickColor)
+                  setHexInput(quickColor)
+                }}
+                className={cn(
+                  "w-8 h-8 rounded border-2 transition-all hover:scale-110",
+                  tempColor === quickColor ? "ring-2 ring-primary ring-offset-1" : "border-border",
+                )}
+                style={{ backgroundColor: quickColor }}
+                title={quickColor}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="space-y-2">
+          <Label className="text-sm">Vista Previa</Label>
+          <div className="flex items-center gap-3 p-3 border rounded-lg">
+            <div className="w-8 h-8 rounded-full border-2 border-border" style={{ backgroundColor: tempColor }} />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Color Personalizado</p>
+              <p className="text-xs text-muted-foreground">{tempColor.toUpperCase()}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-2 pt-3 border-t">
+        <Button variant="outline" size="sm" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button size="sm" onClick={handleApply}>
+          Aplicar Color
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function DeliveryZonesConfigurator({
   storeLocation,
   zones,
@@ -59,13 +200,13 @@ export default function DeliveryZonesConfigurator({
   const [newZoneName, setNewZoneName] = useState("")
   const [newZonePrice, setNewZonePrice] = useState("")
   const [newZoneTime, setNewZoneTime] = useState("")
-  const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0])
-  const [customColor, setCustomColor] = useState("#FF6B6B")
-  const [colorMode, setColorMode] = useState<"preset" | "custom">("preset")
+  const [selectedColor, setSelectedColor] = useState<ColorOption>(PRESET_COLORS[0])
+  const [customColors, setCustomColors] = useState<ColorOption[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentDrawing, setCurrentDrawing] = useState<any>(null)
   const [mapError, setMapError] = useState<string | null>(null)
   const [isLoadingMap, setIsLoadingMap] = useState(false)
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
@@ -74,18 +215,15 @@ export default function DeliveryZonesConfigurator({
   const storeMarkerRef = useRef<any>(null)
   const mapInitializedRef = useRef(false)
 
-  // Get current color based on theme and mode
-  const getCurrentColor = (colorObj?: (typeof PRESET_COLORS)[0]) => {
-    if (colorMode === "custom") {
-      return customColor
-    }
-    if (!colorObj) return customColor
-    return theme === "dark" ? colorObj.dark : colorObj.light
-  }
+  // Combine preset and custom colors
+  const allColors = [...PRESET_COLORS, ...customColors]
 
-  // Get the final color to use
-  const getFinalColor = () => {
-    return colorMode === "custom" ? customColor : getCurrentColor(selectedColor)
+  // Get current color based on theme
+  const getCurrentColor = (colorObj: ColorOption) => {
+    if (colorObj.isCustom) {
+      return colorObj.light // Custom colors use the same color for both themes
+    }
+    return theme === "dark" ? colorObj.dark : colorObj.light
   }
 
   // Effect para inicializar el mapa cuando se abre el modal
@@ -97,15 +235,11 @@ export default function DeliveryZonesConfigurator({
 
   // Update selected color when zones change
   useEffect(() => {
-    if (colorMode === "preset") {
-      const availableColors = PRESET_COLORS.filter(
-        (color) => !zones.some((zone) => zone.color === getCurrentColor(color)),
-      )
-      if (availableColors.length > 0) {
-        setSelectedColor(availableColors[0])
-      }
+    const availableColors = allColors.filter((color) => !zones.some((zone) => zone.color === getCurrentColor(color)))
+    if (availableColors.length > 0) {
+      setSelectedColor(availableColors[0])
     }
-  }, [zones, theme, colorMode])
+  }, [zones, theme, customColors])
 
   // Cleanup effect
   useEffect(() => {
@@ -295,7 +429,7 @@ export default function DeliveryZonesConfigurator({
     })
 
     // Drawing Manager
-    const currentColor = getFinalColor()
+    const currentColor = getCurrentColor(selectedColor)
     drawingManagerRef.current = new window.google.maps.drawing.DrawingManager({
       drawingMode: null,
       drawingControl: true,
@@ -342,8 +476,8 @@ export default function DeliveryZonesConfigurator({
 
   // Update drawing manager colors when selected color changes
   useEffect(() => {
-    if (drawingManagerRef.current) {
-      const currentColor = getFinalColor()
+    if (drawingManagerRef.current && selectedColor) {
+      const currentColor = getCurrentColor(selectedColor)
       drawingManagerRef.current.setOptions({
         polygonOptions: {
           fillColor: currentColor,
@@ -365,7 +499,7 @@ export default function DeliveryZonesConfigurator({
         },
       })
     }
-  }, [selectedColor, customColor, colorMode, theme])
+  }, [selectedColor, theme])
 
   const renderExistingZones = () => {
     if (!mapInstanceRef.current) return
@@ -458,7 +592,7 @@ export default function DeliveryZonesConfigurator({
       price: Number.parseFloat(newZonePrice) || 5000,
       estimatedTime: newZoneTime || "30-45 min",
       coordinates,
-      color: getFinalColor(),
+      color: getCurrentColor(selectedColor),
     }
 
     // Guardar referencia del shape
@@ -507,38 +641,30 @@ export default function DeliveryZonesConfigurator({
     setIsModalOpen(true)
   }
 
+  const handleCreateCustomColor = (color: string) => {
+    const customColorName = `Color Personalizado ${customColors.length + 1}`
+    const newCustomColor: ColorOption = {
+      name: customColorName,
+      light: color,
+      dark: color,
+      isCustom: true,
+    }
+
+    setCustomColors((prev) => [...prev, newCustomColor])
+    setSelectedColor(newCustomColor)
+
+    toast({
+      title: "Color personalizado creado",
+      description: `Se ha agregado "${customColorName}" a tu paleta`,
+    })
+  }
+
   const editingZoneData = zones.find((zone) => zone.id === editingZone)
 
   // Get color name from color value
   const getColorName = (colorValue: string) => {
-    const colorObj = PRESET_COLORS.find((c) => c.light === colorValue || c.dark === colorValue)
+    const colorObj = allColors.find((c) => getCurrentColor(c) === colorValue)
     return colorObj?.name || "Color personalizado"
-  }
-
-  // Generate random custom color
-  const generateRandomColor = () => {
-    const colors = [
-      "#FF6B6B",
-      "#4ECDC4",
-      "#45B7D1",
-      "#96CEB4",
-      "#FFEAA7",
-      "#DDA0DD",
-      "#98D8C8",
-      "#F7DC6F",
-      "#BB8FCE",
-      "#85C1E9",
-      "#F8BBD9",
-      "#A8E6CF",
-      "#FFD3A5",
-      "#C7CEEA",
-      "#FFAAA5",
-      "#50C878",
-      "#FFA726",
-      "#7986CB",
-    ]
-    const randomColor = colors[Math.floor(Math.random() * colors.length)]
-    setCustomColor(randomColor)
   }
 
   return (
@@ -560,8 +686,8 @@ export default function DeliveryZonesConfigurator({
             </DialogHeader>
 
             <div className="space-y-6">
-              {/* Formulario básico */}
-              <div className="grid md:grid-cols-3 gap-4">
+              {/* Formulario */}
+              <div className="grid md:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="zoneName">Nombre de la zona</Label>
                   <Input
@@ -590,32 +716,46 @@ export default function DeliveryZonesConfigurator({
                     placeholder="30-45 min"
                   />
                 </div>
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Color de la zona
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-border"
+                      style={{ backgroundColor: getCurrentColor(selectedColor) }}
+                    />
+                    <span className="text-sm font-medium truncate">{selectedColor.name}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Selector de colores */}
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Palette className="h-5 w-5" />
-                  <Label className="text-base font-medium">Selecciona el color de la zona</Label>
-                  <div
-                    className="w-8 h-8 rounded-full border-2 border-border shadow-sm"
-                    style={{ backgroundColor: getFinalColor() }}
-                  />
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Selecciona un color para la zona</Label>
+                  <Popover open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Pipette className="h-4 w-4 mr-2" />
+                        Color Personalizado
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <ColorPicker
+                        color={getCurrentColor(selectedColor)}
+                        onChange={handleCreateCustomColor}
+                        onClose={() => setIsColorPickerOpen(false)}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                <Tabs value={colorMode} onValueChange={(value) => setColorMode(value as "preset" | "custom")}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="preset" className="flex items-center gap-2">
-                      <Palette className="h-4 w-4" />
-                      Colores Predefinidos
-                    </TabsTrigger>
-                    <TabsTrigger value="custom" className="flex items-center gap-2">
-                      <Pipette className="h-4 w-4" />
-                      Color Personalizado
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="preset" className="space-y-4">
+                {/* Preset colors */}
+                {PRESET_COLORS.length > 0 && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Colores Predefinidos</Label>
                     <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-3">
                       {PRESET_COLORS.map((color, index) => {
                         const currentColor = getCurrentColor(color)
@@ -654,106 +794,62 @@ export default function DeliveryZonesConfigurator({
                         )
                       })}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Los colores marcados con ✕ ya están en uso. Los colores se adaptan automáticamente al modo
-                      claro/oscuro.
-                    </p>
-                  </TabsContent>
+                  </div>
+                )}
 
-                  <TabsContent value="custom" className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                      <div className="space-y-2">
-                        <Label htmlFor="customColorPicker">Selector de Color</Label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            id="customColorPicker"
-                            type="color"
-                            value={customColor}
-                            onChange={(e) => setCustomColor(e.target.value)}
-                            className="w-16 h-16 rounded-lg border-2 border-border cursor-pointer"
-                            title="Selecciona un color personalizado"
-                          />
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Label htmlFor="customColorInput" className="text-sm">
-                                Código Hex:
-                              </Label>
-                              <Input
-                                id="customColorInput"
-                                type="text"
-                                value={customColor}
-                                onChange={(e) => {
-                                  const value = e.target.value
-                                  if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) {
-                                    setCustomColor(value)
-                                  }
-                                }}
-                                className="w-24 h-8 text-sm"
-                                placeholder="#FF6B6B"
-                              />
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={generateRandomColor}
-                              className="text-xs bg-transparent"
-                            >
-                              Color Aleatorio
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
+                {/* Custom colors */}
+                {customColors.length > 0 && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Colores Personalizados</Label>
+                    <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-3">
+                      {customColors.map((color, index) => {
+                        const currentColor = getCurrentColor(color)
+                        const isUsed = zones.some((zone) => zone.color === currentColor)
+                        const isSelected = selectedColor.name === color.name
 
-                      <div className="space-y-2">
-                        <Label>Vista Previa</Label>
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-16 h-16 rounded-lg border-2 border-border shadow-sm"
-                            style={{ backgroundColor: customColor }}
-                          />
-                          <div className="text-sm space-y-1">
-                            <p className="font-medium">Color seleccionado</p>
-                            <p className="text-muted-foreground">{customColor.toUpperCase()}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <h4 className="font-medium mb-2">Colores Sugeridos</h4>
-                      <div className="grid grid-cols-8 gap-2">
-                        {[
-                          "#FF6B6B",
-                          "#4ECDC4",
-                          "#45B7D1",
-                          "#96CEB4",
-                          "#FFEAA7",
-                          "#DDA0DD",
-                          "#98D8C8",
-                          "#F7DC6F",
-                          "#BB8FCE",
-                          "#85C1E9",
-                          "#F8BBD9",
-                          "#A8E6CF",
-                          "#FFD3A5",
-                          "#C7CEEA",
-                          "#FFAAA5",
-                          "#50C878",
-                        ].map((color) => (
+                        return (
                           <button
-                            key={color}
+                            key={`custom-${index}`}
                             type="button"
-                            onClick={() => setCustomColor(color)}
-                            className="w-8 h-8 rounded border-2 border-border hover:scale-110 transition-transform"
-                            style={{ backgroundColor: color }}
-                            title={color}
-                          />
-                        ))}
-                      </div>
+                            disabled={isUsed}
+                            onClick={() => setSelectedColor(color)}
+                            className={cn(
+                              "relative w-12 h-12 rounded-lg border-2 transition-all duration-200",
+                              "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary",
+                              isSelected && "ring-2 ring-primary ring-offset-2 scale-110",
+                              isUsed && "opacity-50 cursor-not-allowed hover:scale-100",
+                            )}
+                            style={{
+                              backgroundColor: currentColor,
+                              borderColor: theme === "dark" ? "#374151" : "#d1d5db",
+                            }}
+                            title={`${color.name}${isUsed ? " (En uso)" : ""}`}
+                          >
+                            {isSelected && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                              </div>
+                            )}
+                            {isUsed && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <X className="w-4 h-4 text-white drop-shadow-sm" />
+                              </div>
+                            )}
+                            {/* Custom color indicator */}
+                            <div className="absolute -top-1 -right-1">
+                              <Pipette className="w-3 h-3 text-primary bg-background rounded-full p-0.5" />
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
-                  </TabsContent>
-                </Tabs>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  Los colores marcados con ✕ ya están en uso. Los colores predefinidos se adaptan automáticamente al
+                  modo claro/oscuro, mientras que los personalizados mantienen el mismo color en ambos modos.
+                </p>
               </div>
 
               {/* Mapa */}
