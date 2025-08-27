@@ -6,24 +6,23 @@ class GoogleMapsLoader {
   private apiKey: string
   private retryCount = 0
   private maxRetries = 3
-  private retryDelay = 1000
 
-  private constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
+  constructor() {
+    this.apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyCZukkglTPUl6jm2sBfgxikMjlFKwyp5jY"
   }
 
-  public static getInstance(): GoogleMapsLoader {
+  static getInstance(): GoogleMapsLoader {
     if (!GoogleMapsLoader.instance) {
       GoogleMapsLoader.instance = new GoogleMapsLoader()
     }
     return GoogleMapsLoader.instance
   }
 
-  public isApiKeyConfigured(): boolean {
-    return this.apiKey.length > 0
+  isApiKeyConfigured(): boolean {
+    return !!this.apiKey && this.apiKey !== "your_api_key_here"
   }
 
-  public load(callback: () => void): void {
+  load(callback: () => void): void {
     if (this.isLoaded && window.google && window.google.maps && window.google.maps.drawing) {
       callback()
       return
@@ -35,16 +34,13 @@ class GoogleMapsLoader {
       return
     }
 
-    this.loadScript()
-  }
-
-  private loadScript(): void {
     // Check if script already exists
-    const existingScript = document.getElementById("google-maps-script")
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
     if (existingScript) {
       // Script exists, check if it's loaded
       if (window.google && window.google.maps && window.google.maps.drawing) {
-        this.handleScriptLoad()
+        this.isLoaded = true
+        this.executeCallbacks()
         return
       } else {
         // Script exists but not loaded, wait for it
@@ -54,48 +50,86 @@ class GoogleMapsLoader {
     }
 
     this.isLoading = true
+    this.loadScript()
+  }
+
+  private loadScript(): void {
+    const callbackName = `initGoogleMaps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Set global callback
+    ;(window as any)[callbackName] = () => {
+      this.isLoaded = true
+      this.isLoading = false
+      this.retryCount = 0
+      this.executeCallbacks()
+
+      // Clean up callback
+      delete (window as any)[callbackName]
+    }
 
     const script = document.createElement("script")
     script.id = "google-maps-script"
-    script.type = "text/javascript"
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&libraries=drawing&callback=${callbackName}`
     script.async = true
     script.defer = true
 
-    // Create unique callback name
-    const callbackName = `initGoogleMaps_${Date.now()}`
+    script.onerror = () => {
+      this.isLoading = false
+      console.error("Failed to load Google Maps script")
 
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&libraries=drawing&callback=${callbackName}`
+      if (this.retryCount < this.maxRetries) {
+        this.retryCount++
+        console.log(`Retrying Google Maps load (${this.retryCount}/${this.maxRetries})`)
+        setTimeout(() => {
+          // Remove failed script
+          const failedScript = document.getElementById("google-maps-script")
+          if (failedScript) {
+            failedScript.remove()
+          }
+          this.loadScript()
+        }, 1000 * this.retryCount)
+      } else {
+        this.executeCallbacks(new Error("Failed to load Google Maps after multiple attempts"))
+      }
 
-    // Set up global callback
-    ;(window as any)[callbackName] = () => {
-      this.handleScriptLoad()
       // Clean up callback
       delete (window as any)[callbackName]
     }
 
-    script.onerror = () => {
-      console.error("Failed to load Google Maps script")
-      this.handleScriptError()
-      // Clean up callback
-      delete (window as any)[callbackName]
+    // Set timeout for loading
+    const timeout = setTimeout(() => {
+      if (!this.isLoaded) {
+        console.error("Timeout waiting for Google Maps to load")
+        this.isLoading = false
+
+        if (this.retryCount < this.maxRetries) {
+          this.retryCount++
+          console.log(`Retrying Google Maps load due to timeout (${this.retryCount}/${this.maxRetries})`)
+          script.remove()
+          delete (window as any)[callbackName]
+          setTimeout(() => this.loadScript(), 1000 * this.retryCount)
+        } else {
+          this.executeCallbacks(new Error("Timeout waiting for Google Maps to load"))
+        }
+      }
+    }, 15000) // 15 second timeout
+
+    // Clear timeout when script loads successfully
+    const originalCallback = (window as any)[callbackName]
+    ;(window as any)[callbackName] = () => {
+      clearTimeout(timeout)
+      originalCallback()
     }
 
     document.head.appendChild(script)
-
-    // Set timeout for loading
-    setTimeout(() => {
-      if (!this.isLoaded) {
-        console.error("Timeout waiting for Google Maps to load")
-        this.handleScriptError()
-      }
-    }, 15000) // 15 second timeout
   }
 
   private waitForGoogleMaps(): void {
     const checkInterval = setInterval(() => {
       if (window.google && window.google.maps && window.google.maps.drawing) {
         clearInterval(checkInterval)
-        this.handleScriptLoad()
+        this.isLoaded = true
+        this.executeCallbacks()
       }
     }, 100)
 
@@ -103,54 +137,24 @@ class GoogleMapsLoader {
     setTimeout(() => {
       clearInterval(checkInterval)
       if (!this.isLoaded) {
-        this.handleScriptError()
+        this.executeCallbacks(new Error("Timeout waiting for existing Google Maps script"))
       }
     }, 10000)
   }
 
-  private handleScriptLoad(): void {
-    this.isLoaded = true
-    this.isLoading = false
-    this.retryCount = 0
+  private executeCallbacks(error?: Error): void {
+    const callbacks = [...this.callbacks]
+    this.callbacks = []
 
-    // Execute all callbacks
-    this.callbacks.forEach((callback) => {
+    callbacks.forEach((callback) => {
       try {
-        callback()
-      } catch (error) {
-        console.error("Error executing Google Maps callback:", error)
+        if (!error) {
+          callback()
+        }
+      } catch (err) {
+        console.error("Error executing Google Maps callback:", err)
       }
     })
-    this.callbacks = []
-  }
-
-  private handleScriptError(): void {
-    this.isLoading = false
-
-    if (this.retryCount < this.maxRetries) {
-      this.retryCount++
-      console.log(`Retrying Google Maps load (attempt ${this.retryCount}/${this.maxRetries})`)
-
-      setTimeout(() => {
-        // Remove existing script if it exists
-        const existingScript = document.getElementById("google-maps-script")
-        if (existingScript) {
-          existingScript.remove()
-        }
-        this.loadScript()
-      }, this.retryDelay * this.retryCount)
-    } else {
-      console.error("Max retries reached for Google Maps loading")
-      // Execute callbacks with error state
-      this.callbacks.forEach((callback) => {
-        try {
-          callback()
-        } catch (error) {
-          console.error("Error executing Google Maps callback after error:", error)
-        }
-      })
-      this.callbacks = []
-    }
   }
 }
 
