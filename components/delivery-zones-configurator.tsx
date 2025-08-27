@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trash2, Edit, Save, X, Plus, MapPin } from "lucide-react"
+import { Trash2, Edit, Save, X, Plus, MapPin, Palette } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import GoogleMapsLoader from "@/lib/google-maps-loader"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 interface DeliveryZone {
   id: string
@@ -25,16 +27,24 @@ interface DeliveryZonesConfiguratorProps {
 }
 
 const ZONE_COLORS = [
-  "#FF6B6B",
-  "#4ECDC4",
-  "#45B7D1",
-  "#96CEB4",
-  "#FFEAA7",
-  "#DDA0DD",
-  "#98D8C8",
-  "#F7DC6F",
-  "#BB8FCE",
-  "#85C1E9",
+  { name: "Rojo", light: "#FF6B6B", dark: "#FF5252" },
+  { name: "Turquesa", light: "#4ECDC4", dark: "#26A69A" },
+  { name: "Azul", light: "#45B7D1", dark: "#42A5F5" },
+  { name: "Verde", light: "#96CEB4", dark: "#66BB6A" },
+  { name: "Amarillo", light: "#FFEAA7", dark: "#FFEE58" },
+  { name: "Púrpura", light: "#DDA0DD", dark: "#BA68C8" },
+  { name: "Verde Agua", light: "#98D8C8", dark: "#4DB6AC" },
+  { name: "Dorado", light: "#F7DC6F", dark: "#FFD54F" },
+  { name: "Lavanda", light: "#BB8FCE", dark: "#9575CD" },
+  { name: "Celeste", light: "#85C1E9", dark: "#64B5F6" },
+  { name: "Coral", light: "#F8BBD9", dark: "#F48FB1" },
+  { name: "Menta", light: "#A8E6CF", dark: "#81C784" },
+  { name: "Durazno", light: "#FFD3A5", dark: "#FFAB91" },
+  { name: "Lila", light: "#C7CEEA", dark: "#9FA8DA" },
+  { name: "Rosa", light: "#FFAAA5", dark: "#EF5350" },
+  { name: "Esmeralda", light: "#50C878", dark: "#4CAF50" },
+  { name: "Naranja", light: "#FFA726", dark: "#FF9800" },
+  { name: "Índigo", light: "#7986CB", dark: "#5C6BC0" },
 ]
 
 export default function DeliveryZonesConfigurator({
@@ -42,11 +52,13 @@ export default function DeliveryZonesConfigurator({
   zones,
   onZonesChange,
 }: DeliveryZonesConfiguratorProps) {
+  const { theme } = useTheme()
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [editingZone, setEditingZone] = useState<string | null>(null)
   const [newZoneName, setNewZoneName] = useState("")
   const [newZonePrice, setNewZonePrice] = useState("")
   const [newZoneTime, setNewZoneTime] = useState("")
+  const [selectedColor, setSelectedColor] = useState(ZONE_COLORS[0])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentDrawing, setCurrentDrawing] = useState<any>(null)
   const [mapError, setMapError] = useState<string | null>(null)
@@ -59,12 +71,25 @@ export default function DeliveryZonesConfigurator({
   const storeMarkerRef = useRef<any>(null)
   const mapInitializedRef = useRef(false)
 
+  // Get current color based on theme
+  const getCurrentColor = (colorObj: (typeof ZONE_COLORS)[0]) => {
+    return theme === "dark" ? colorObj.dark : colorObj.light
+  }
+
   // Effect para inicializar el mapa cuando se abre el modal
   useEffect(() => {
     if (isModalOpen && !mapInitializedRef.current) {
       initializeMapInModal()
     }
   }, [isModalOpen])
+
+  // Update selected color when zones change
+  useEffect(() => {
+    const availableColors = ZONE_COLORS.filter((color) => !zones.some((zone) => zone.color === getCurrentColor(color)))
+    if (availableColors.length > 0) {
+      setSelectedColor(availableColors[0])
+    }
+  }, [zones, theme])
 
   // Cleanup effect
   useEffect(() => {
@@ -148,6 +173,89 @@ export default function DeliveryZonesConfigurator({
       mapTypeControl: true,
       streetViewControl: false,
       fullscreenControl: true,
+      styles:
+        theme === "dark"
+          ? [
+              { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+              { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+              { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+              {
+                featureType: "administrative.locality",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+              },
+              {
+                featureType: "poi",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+              },
+              {
+                featureType: "poi.park",
+                elementType: "geometry",
+                stylers: [{ color: "#263c3f" }],
+              },
+              {
+                featureType: "poi.park",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#6b9a76" }],
+              },
+              {
+                featureType: "road",
+                elementType: "geometry",
+                stylers: [{ color: "#38414e" }],
+              },
+              {
+                featureType: "road",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#212a37" }],
+              },
+              {
+                featureType: "road",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#9ca5b3" }],
+              },
+              {
+                featureType: "road.highway",
+                elementType: "geometry",
+                stylers: [{ color: "#746855" }],
+              },
+              {
+                featureType: "road.highway",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#1f2835" }],
+              },
+              {
+                featureType: "road.highway",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#f3d19c" }],
+              },
+              {
+                featureType: "transit",
+                elementType: "geometry",
+                stylers: [{ color: "#2f3948" }],
+              },
+              {
+                featureType: "transit.station",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }],
+              },
+              {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#17263c" }],
+              },
+              {
+                featureType: "water",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#515c6d" }],
+              },
+              {
+                featureType: "water",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#17263c" }],
+              },
+            ]
+          : undefined,
     }
 
     mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions)
@@ -171,6 +279,7 @@ export default function DeliveryZonesConfigurator({
     })
 
     // Drawing Manager
+    const currentColor = getCurrentColor(selectedColor)
     drawingManagerRef.current = new window.google.maps.drawing.DrawingManager({
       drawingMode: null,
       drawingControl: true,
@@ -179,19 +288,19 @@ export default function DeliveryZonesConfigurator({
         drawingModes: [window.google.maps.drawing.OverlayType.POLYGON, window.google.maps.drawing.OverlayType.CIRCLE],
       },
       polygonOptions: {
-        fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        fillColor: currentColor,
         fillOpacity: 0.3,
         strokeWeight: 2,
-        strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        strokeColor: currentColor,
         clickable: true,
         editable: true,
         draggable: false,
       },
       circleOptions: {
-        fillColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        fillColor: currentColor,
         fillOpacity: 0.3,
         strokeWeight: 2,
-        strokeColor: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+        strokeColor: currentColor,
         clickable: true,
         editable: true,
         draggable: false,
@@ -214,6 +323,33 @@ export default function DeliveryZonesConfigurator({
     renderExistingZones()
     setIsMapLoaded(true)
   }
+
+  // Update drawing manager colors when selected color changes
+  useEffect(() => {
+    if (drawingManagerRef.current && selectedColor) {
+      const currentColor = getCurrentColor(selectedColor)
+      drawingManagerRef.current.setOptions({
+        polygonOptions: {
+          fillColor: currentColor,
+          fillOpacity: 0.3,
+          strokeWeight: 2,
+          strokeColor: currentColor,
+          clickable: true,
+          editable: true,
+          draggable: false,
+        },
+        circleOptions: {
+          fillColor: currentColor,
+          fillOpacity: 0.3,
+          strokeWeight: 2,
+          strokeColor: currentColor,
+          clickable: true,
+          editable: true,
+          draggable: false,
+        },
+      })
+    }
+  }, [selectedColor, theme])
 
   const renderExistingZones = () => {
     if (!mapInstanceRef.current) return
@@ -306,7 +442,7 @@ export default function DeliveryZonesConfigurator({
       price: Number.parseFloat(newZonePrice) || 5000,
       estimatedTime: newZoneTime || "30-45 min",
       coordinates,
-      color: ZONE_COLORS[zones.length % ZONE_COLORS.length],
+      color: getCurrentColor(selectedColor),
     }
 
     // Guardar referencia del shape
@@ -357,6 +493,12 @@ export default function DeliveryZonesConfigurator({
 
   const editingZoneData = zones.find((zone) => zone.id === editingZone)
 
+  // Get color name from color value
+  const getColorName = (colorValue: string) => {
+    const colorObj = ZONE_COLORS.find((c) => c.light === colorValue || c.dark === colorValue)
+    return colorObj?.name || "Color personalizado"
+  }
+
   return (
     <div className="space-y-6">
       {/* Botón para crear nueva zona */}
@@ -367,7 +509,7 @@ export default function DeliveryZonesConfigurator({
         </Button>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -377,7 +519,7 @@ export default function DeliveryZonesConfigurator({
 
             <div className="space-y-6">
               {/* Formulario */}
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="zoneName">Nombre de la zona</Label>
                   <Input
@@ -406,6 +548,66 @@ export default function DeliveryZonesConfigurator({
                     placeholder="30-45 min"
                   />
                 </div>
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Color de la zona
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-border"
+                      style={{ backgroundColor: getCurrentColor(selectedColor) }}
+                    />
+                    <span className="text-sm font-medium">{selectedColor.name}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selector de colores */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Selecciona un color para la zona</Label>
+                <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-3">
+                  {ZONE_COLORS.map((color, index) => {
+                    const currentColor = getCurrentColor(color)
+                    const isUsed = zones.some((zone) => zone.color === currentColor)
+                    const isSelected = selectedColor.name === color.name
+
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        disabled={isUsed}
+                        onClick={() => setSelectedColor(color)}
+                        className={cn(
+                          "relative w-12 h-12 rounded-lg border-2 transition-all duration-200",
+                          "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary",
+                          isSelected && "ring-2 ring-primary ring-offset-2 scale-110",
+                          isUsed && "opacity-50 cursor-not-allowed hover:scale-100",
+                        )}
+                        style={{
+                          backgroundColor: currentColor,
+                          borderColor: theme === "dark" ? "#374151" : "#d1d5db",
+                        }}
+                        title={`${color.name}${isUsed ? " (En uso)" : ""}`}
+                      >
+                        {isSelected && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                          </div>
+                        )}
+                        {isUsed && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <X className="w-4 h-4 text-white drop-shadow-sm" />
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Los colores marcados con ✕ ya están en uso. Los colores se adaptan automáticamente al modo
+                  claro/oscuro.
+                </p>
               </div>
 
               {/* Mapa */}
@@ -454,6 +656,7 @@ export default function DeliveryZonesConfigurator({
 
                 <p className="text-sm text-muted-foreground">
                   Usa las herramientas del mapa para dibujar polígonos o círculos que representen tu zona de delivery.
+                  El color seleccionado se aplicará automáticamente a la zona.
                 </p>
               </div>
 
@@ -497,11 +700,14 @@ export default function DeliveryZonesConfigurator({
               {zones.map((zone) => (
                 <div key={zone.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: zone.color }} />
+                    <div
+                      className="w-6 h-6 rounded-full border-2 border-border shadow-sm"
+                      style={{ backgroundColor: zone.color }}
+                    />
                     <div>
                       <h4 className="font-medium">{zone.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        ${zone.price.toLocaleString()} • {zone.estimatedTime}
+                        ${zone.price.toLocaleString()} • {zone.estimatedTime} • {getColorName(zone.color)}
                       </p>
                     </div>
                   </div>
@@ -525,7 +731,13 @@ export default function DeliveryZonesConfigurator({
         <Card className="border-2 border-primary">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              Editando: {editingZoneData.name}
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-6 h-6 rounded-full border-2 border-border"
+                  style={{ backgroundColor: editingZoneData.color }}
+                />
+                Editando: {editingZoneData.name}
+              </div>
               <Button size="sm" variant="ghost" onClick={() => setEditingZone(null)}>
                 <X className="h-4 w-4" />
               </Button>
