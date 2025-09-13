@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Plus, X } from "lucide-react"
+import { Loader2, X, Upload } from "lucide-react"
 import { subirProducto } from "@/lib/actions"
 
 interface FormData {
@@ -31,13 +31,18 @@ interface FormErrors {
   [key: string]: string
 }
 
+interface ImagePreview {
+  file: File
+  preview: string
+  id: string
+}
+
 export default function ProductUploadForm() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [especificaciones, setEspecificaciones] = useState<string[]>([])
   const [nuevaEspecificacion, setNuevaEspecificacion] = useState("")
-  const [imagenPreview, setImagenPreview] = useState<string | null>(null)
-  const [imagenFile, setImagenFile] = useState<File | null>(null)
+  const [imagenesPreview, setImagenesPreview] = useState<ImagePreview[]>([])
   const [errors, setErrors] = useState<FormErrors>({})
 
   const [formData, setFormData] = useState<FormData>({
@@ -67,16 +72,66 @@ export default function ProductUploadForm() {
     }
   }
 
-  const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImagenFile(file)
+  const handleImagenesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+
+    if (files.length === 0) return
+
+    // Validar que no se excedan las 8 imágenes
+    if (imagenesPreview.length + files.length > 8) {
+      toast({
+        title: "Límite de imágenes",
+        description: "Puedes subir máximo 8 imágenes por producto.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validar tamaño de archivos (máximo 5MB cada uno)
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    const invalidFiles = files.filter((file) => file.size > maxSize)
+
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Archivos muy grandes",
+        description: "Cada imagen debe ser menor a 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Procesar archivos válidos
+    const validFiles = files.filter((file) => file.size <= maxSize)
+
+    validFiles.forEach((file) => {
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImagenPreview(reader.result as string)
+        const newImage: ImagePreview = {
+          file,
+          preview: reader.result as string,
+          id: Math.random().toString(36).substr(2, 9),
+        }
+
+        setImagenesPreview((prev) => [...prev, newImage])
       }
       reader.readAsDataURL(file)
-    }
+    })
+
+    // Limpiar el input
+    e.target.value = ""
+  }
+
+  const eliminarImagen = (id: string) => {
+    setImagenesPreview((prev) => prev.filter((img) => img.id !== id))
+  }
+
+  const reordenarImagenes = (fromIndex: number, toIndex: number) => {
+    setImagenesPreview((prev) => {
+      const newArray = [...prev]
+      const [removed] = newArray.splice(fromIndex, 1)
+      newArray.splice(toIndex, 0, removed)
+      return newArray
+    })
   }
 
   const agregarEspecificacion = () => {
@@ -133,6 +188,10 @@ export default function ProductUploadForm() {
       newErrors.tiempoEntrega = "Por favor especifica el tiempo de entrega"
     }
 
+    if (imagenesPreview.length === 0) {
+      newErrors.imagenes = "Debes subir al menos una imagen del producto"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -152,12 +211,13 @@ export default function ProductUploadForm() {
     try {
       setIsSubmitting(true)
 
-      // Simular la subida del producto
-      await subirProducto(formData, especificaciones, imagenFile)
+      // Simular la subida del producto con múltiples imágenes
+      const imagenes = imagenesPreview.map((img) => img.file)
+      await subirProducto(formData, especificaciones, imagenes)
 
       toast({
         title: "Producto subido con éxito",
-        description: "Tu producto ha sido publicado correctamente.",
+        description: `${formData.nombre} ha sido publicado con ${imagenesPreview.length} imagen${imagenesPreview.length > 1 ? "es" : ""}.`,
       })
 
       // Redireccionar a la página principal después de un breve retraso
@@ -181,7 +241,7 @@ export default function ProductUploadForm() {
     <Card>
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             <div className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre del producto</Label>
@@ -207,7 +267,7 @@ export default function ProductUploadForm() {
                 {errors.descripcion && <p className="text-sm text-red-500">{errors.descripcion}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="precio">Precio</Label>
                   <Input
@@ -235,7 +295,7 @@ export default function ProductUploadForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="categoria">Categoría</Label>
                   <Select onValueChange={(value) => handleInputChange("categoria", value)} value={formData.categoria}>
@@ -296,7 +356,7 @@ export default function ProductUploadForm() {
                 {errors.tipoVenta && <p className="text-sm text-red-500">{errors.tipoVenta}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="stock">{formData.tipoVenta === "delivery" ? "Disponibilidad" : "Stock"}</Label>
                   <Input
@@ -351,41 +411,97 @@ export default function ProductUploadForm() {
                 {errors.descripcionLarga && <p className="text-sm text-red-500">{errors.descripcionLarga}</p>}
               </div>
 
-              <div>
-                <div className="mb-2">
-                  <Label>Imagen del producto</Label>
+              {/* Sección de imágenes mejorada */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Imágenes del producto</Label>
+                  <span className="text-sm text-muted-foreground">{imagenesPreview.length}/8 imágenes</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
-                    onClick={() => document.getElementById("imagen-input")?.click()}
-                    style={{ height: "150px", width: "150px" }}
+
+                {/* Botón para subir imágenes */}
+                <div className="flex flex-col gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-20 border-2 border-dashed hover:border-primary/50 transition-colors bg-transparent"
+                    onClick={() => document.getElementById("imagenes-input")?.click()}
+                    disabled={imagenesPreview.length >= 8}
                   >
-                    {imagenPreview ? (
-                      <img
-                        src={imagenPreview || "/placeholder.svg"}
-                        alt="Vista previa"
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <Plus className="mx-auto h-10 w-10 text-gray-400" />
-                        <p className="mt-2 text-sm text-gray-500">Subir imagen</p>
-                      </div>
-                    )}
-                    <input
-                      id="imagen-input"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImagenChange}
-                    />
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    <p>Formatos: JPG, PNG, GIF</p>
-                    <p>Tamaño máximo: 5MB</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-sm">
+                        {imagenesPreview.length >= 8 ? "Máximo 8 imágenes alcanzado" : "Subir imágenes (máx. 8)"}
+                      </span>
+                    </div>
+                  </Button>
+
+                  <input
+                    id="imagenes-input"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImagenesChange}
+                  />
+
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>• Formatos: JPG, PNG, GIF</p>
+                    <p>• Tamaño máximo: 5MB por imagen</p>
+                    <p>• La primera imagen será la principal</p>
                   </div>
                 </div>
+
+                {errors.imagenes && <p className="text-sm text-red-500">{errors.imagenes}</p>}
+
+                {/* Grid de imágenes preview */}
+                {imagenesPreview.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {imagenesPreview.map((imagen, index) => (
+                        <div key={imagen.id} className="relative group">
+                          <div className="relative aspect-square rounded-lg overflow-hidden bg-muted border-2 border-transparent group-hover:border-primary/20 transition-colors">
+                            <img
+                              src={imagen.preview || "/placeholder.svg"}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+
+                            {/* Overlay con controles */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => eliminarImagen(imagen.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Indicador de imagen principal */}
+                            {index === 0 && (
+                              <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                                Principal
+                              </div>
+                            )}
+
+                            {/* Número de imagen */}
+                            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                              {index + 1}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {imagenesPreview.length > 1 && (
+                      <p className="text-xs text-muted-foreground">
+                        💡 Arrastra las imágenes para reordenarlas. La primera imagen será la principal.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

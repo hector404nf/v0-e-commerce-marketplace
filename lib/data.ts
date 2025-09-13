@@ -9,7 +9,12 @@ export const productos = [
     descuento: 10,
     categoria: "electronica",
     marca: "samsung",
-    imagen: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1580910051074-3eb694886505?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1565849904461-04a58ad377e0?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Pantalla AMOLED de 6.1 pulgadas",
       "Procesador Snapdragon 8 Gen 2",
@@ -32,7 +37,11 @@ export const productos = [
     descuento: 0,
     categoria: "electronica",
     marca: "hp",
-    imagen: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Pantalla táctil de 13.3 pulgadas",
       "Procesador Intel Core i7",
@@ -55,7 +64,12 @@ export const productos = [
     descuento: 20,
     categoria: "deportes",
     marca: "nike",
-    imagen: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Tecnología de amortiguación React",
       "Parte superior de malla transpirable",
@@ -78,7 +92,11 @@ export const productos = [
     descuento: 15,
     categoria: "electronica",
     marca: "sony",
-    imagen: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Pantalla LED 4K de 55 pulgadas",
       "HDR10+ y Dolby Vision",
@@ -101,7 +119,11 @@ export const productos = [
     descuento: 0,
     categoria: "ropa",
     marca: "adidas",
-    imagen: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Tecnología DryFit para secado rápido",
       "Tejido 100% poliéster reciclado",
@@ -124,7 +146,11 @@ export const productos = [
     descuento: 5,
     categoria: "hogar",
     marca: "xiaomi",
-    imagen: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Navegación láser LDS",
       "Potencia de succión de 2500Pa",
@@ -147,7 +173,11 @@ export const productos = [
     descuento: 0,
     categoria: "electronica",
     marca: "apple",
-    imagen: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Cancelación activa de ruido",
       "Hasta 20 horas de autonomía",
@@ -170,7 +200,10 @@ export const productos = [
     descuento: 0,
     categoria: "belleza",
     marca: "loreal",
-    imagen: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Fórmula con ácido hialurónico y vitamina C",
       "Hidratación de 48 horas",
@@ -193,7 +226,12 @@ export const productos = [
     descuento: 10,
     categoria: "deportes",
     marca: "trek",
-    imagen: "https://images.unsplash.com/photo-1544191696-15693072e0b5?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1544191696-15693072e0b5?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1502744688674-c619d1586c9e?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Cuadro de aluminio 6061",
       "Suspensión delantera con 100mm de recorrido",
@@ -216,7 +254,11 @@ export const productos = [
     descuento: 0,
     categoria: "hogar",
     marca: "delonghi",
-    imagen: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Molinillo integrado con 13 niveles de molienda",
       "15 bares de presión",
@@ -239,7 +281,11 @@ export const productos = [
     descuento: 0,
     categoria: "ropa",
     marca: "zara",
-    imagen: "https://images.unsplash.com/photo-1566479179817-c0b5b4b8b1cc?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1566479179817-c0b5b4b8b1cc?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Tejido de poliéster de alta calidad",
       "Forro interior",
@@ -262,7 +308,11 @@ export const productos = [
     descuento: 15,
     categoria: "belleza",
     marca: "maybelline",
-    imagen: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1583241800698-9c2e8b2b9e8e?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Paleta de 24 sombras de ojos",
       "Base de maquillaje de larga duración",
@@ -286,7 +336,11 @@ export const productos = [
     descuento: 0,
     categoria: "comida",
     marca: "casa",
-    imagen: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Masa artesanal fermentada 24h",
       "Mozzarella de búfala",
@@ -309,7 +363,11 @@ export const productos = [
     descuento: 10,
     categoria: "comida",
     marca: "casa",
-    imagen: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Carne angus 200g",
       "Queso cheddar madurado",
@@ -332,7 +390,11 @@ export const productos = [
     descuento: 0,
     categoria: "comida",
     marca: "casa",
-    imagen: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "20 piezas variadas",
       "Pescado fresco del día",
@@ -355,7 +417,10 @@ export const productos = [
     descuento: 0,
     categoria: "bebidas",
     marca: "casa",
-    imagen: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop",
+    imagenes: [
+      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=400&fit=crop",
+    ],
     especificaciones: [
       "Granos arábica 100%",
       "Origen: Colombia",

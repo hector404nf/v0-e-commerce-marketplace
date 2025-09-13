@@ -3,7 +3,8 @@
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, ShoppingCart, Heart, Package, Clock, Truck, MapPin } from "lucide-react"
+import { useState } from "react"
+import { ArrowLeft, ShoppingCart, Heart, Package, Clock, Truck, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,7 @@ import RecommendationsSection from "@/components/recommendations-section"
 export default function ProductPage({ params }: { params: { id: string } }) {
   const { addItem } = useCart()
   const { trackProductView, trackAddToCart } = useBehaviorTracking()
+  const [imagenActual, setImagenActual] = useState(0)
   const producto = productos.find((p) => p.id.toString() === params.id)
 
   // Rastrear vista del producto
@@ -31,6 +33,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }
 
   const tienda = tiendas.find((t) => t.id === producto.tiendaId)
+
+  // Manejar compatibilidad con productos que tienen imagen única
+  const imagenes = producto.imagenes || (producto.imagen ? [producto.imagen] : [])
 
   const getTipoVentaInfo = (tipoVenta: string) => {
     switch (tipoVenta) {
@@ -85,6 +90,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     })
   }
 
+  const siguienteImagen = () => {
+    setImagenActual((prev) => (prev + 1) % imagenes.length)
+  }
+
+  const anteriorImagen = () => {
+    setImagenActual((prev) => (prev - 1 + imagenes.length) % imagenes.length)
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
@@ -98,32 +111,113 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             Volver a productos
           </Link>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-              <Image src={producto.imagen || "/placeholder.svg"} alt={producto.nombre} fill className="object-cover" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Galería de imágenes */}
+            <div className="space-y-4">
+              {/* Imagen principal */}
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+                {imagenes.length > 0 ? (
+                  <>
+                    <Image
+                      src={imagenes[imagenActual] || "/placeholder.svg"}
+                      alt={`${producto.nombre} - Imagen ${imagenActual + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+
+                    {/* Controles de navegación para múltiples imágenes */}
+                    {imagenes.length > 1 && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white/90"
+                          onClick={anteriorImagen}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white/90"
+                          onClick={siguienteImagen}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        {/* Indicador de imagen actual */}
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                          {imagenActual + 1} / {imagenes.length}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center text-muted-foreground">
+                      <Package className="h-16 w-16 mx-auto mb-4" />
+                      <p>Sin imagen disponible</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Miniaturas */}
+              {imagenes.length > 1 && (
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+                  {imagenes.map((imagen, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setImagenActual(index)}
+                      className={`relative aspect-square overflow-hidden rounded-md border-2 transition-all ${
+                        index === imagenActual
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                    >
+                      <Image
+                        src={imagen || "/placeholder.svg"}
+                        alt={`${producto.nombre} - Miniatura ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
+            {/* Información del producto */}
+            <div className="flex flex-col gap-4 lg:gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Badge className="w-fit" variant="outline">
                   {producto.categoria}
                 </Badge>
-                <div className={`flex items-center gap-1 px-3 py-1 rounded-full ${tipoInfo.bgColor}`}>
+                <div className={`flex items-center gap-1 px-3 py-1 rounded-full w-fit ${tipoInfo.bgColor}`}>
                   <IconComponent className={`h-4 w-4 ${tipoInfo.textColor}`} />
                   <span className={`text-sm font-medium ${tipoInfo.textColor}`}>{tipoInfo.label}</span>
                 </div>
               </div>
 
-              <h1 className="text-3xl font-bold">{producto.nombre}</h1>
-              <p className="text-2xl font-semibold">${producto.precio.toFixed(2)}</p>
-              <p className="text-muted-foreground">{producto.descripcion}</p>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">{producto.nombre}</h1>
+
+              <div className="flex items-center gap-4">
+                <p className="text-2xl md:text-3xl font-semibold">${producto.precio.toFixed(2)}</p>
+                {producto.descuento > 0 && (
+                  <Badge variant="destructive" className="text-sm">
+                    -{producto.descuento}%
+                  </Badge>
+                )}
+              </div>
+
+              <p className="text-muted-foreground text-base md:text-lg">{producto.descripcion}</p>
 
               {/* Información específica del tipo de venta */}
               <Card>
                 <CardContent className="pt-4">
                   <div className="flex items-start gap-3">
-                    <IconComponent className={`h-5 w-5 ${tipoInfo.textColor} mt-0.5`} />
-                    <div>
+                    <IconComponent className={`h-5 w-5 ${tipoInfo.textColor} mt-0.5 flex-shrink-0`} />
+                    <div className="flex-1">
                       <h3 className="font-medium">{tipoInfo.label}</h3>
                       <p className="text-sm text-muted-foreground">{tipoInfo.description}</p>
                       <div className="mt-2 text-sm">
@@ -156,7 +250,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 <Card>
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 rounded-full bg-muted overflow-hidden">
+                      <div className="relative h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
                         <Image
                           src={tienda.logo || "/placeholder.svg"}
                           alt={tienda.nombre}
@@ -164,11 +258,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                           className="object-cover"
                         />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{tienda.nombre}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">{tienda.nombre}</h3>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          <span>{tienda.ciudad}</span>
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{tienda.ciudad}</span>
                         </div>
                       </div>
                       <Link href={`/tiendas/${tienda.id}`}>
@@ -181,34 +275,34 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 </Card>
               )}
 
-              <div className="flex gap-4 mt-6">
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
                 <Button className="flex-1" onClick={handleAddToCart}>
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   {producto.tipoVenta === "delivery" ? "Pedir ahora" : "Añadir al carrito"}
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" className="sm:w-auto bg-transparent">
                   <Heart className="h-4 w-4" />
                 </Button>
               </div>
 
               <Tabs defaultValue="descripcion" className="mt-8">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="descripcion">Descripción</TabsTrigger>
                   <TabsTrigger value="especificaciones">Especificaciones</TabsTrigger>
                   <TabsTrigger value="entrega">Entrega</TabsTrigger>
                 </TabsList>
                 <TabsContent value="descripcion" className="pt-4">
-                  <p>{producto.descripcionLarga}</p>
+                  <p className="text-sm md:text-base leading-relaxed">{producto.descripcionLarga}</p>
                 </TabsContent>
                 <TabsContent value="especificaciones" className="pt-4">
-                  <ul className="list-disc pl-5 space-y-2">
+                  <ul className="list-disc pl-5 space-y-2 text-sm md:text-base">
                     {producto.especificaciones.map((spec, index) => (
                       <li key={index}>{spec}</li>
                     ))}
                   </ul>
                 </TabsContent>
                 <TabsContent value="entrega" className="pt-4">
-                  <div className="space-y-3">
+                  <div className="space-y-3 text-sm md:text-base">
                     <div>
                       <h4 className="font-medium">Tiempo de entrega</h4>
                       <p className="text-sm text-muted-foreground">{producto.tiempoEntrega}</p>
