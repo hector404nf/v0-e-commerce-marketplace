@@ -1,41 +1,92 @@
 "use client"
 
-import { notFound } from "next/navigation"
-import Image from "next/image"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import Link from "next/link"
-import { useState } from "react"
-import { ArrowLeft, ShoppingCart, Heart, Package, Clock, Truck, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
+import Image from "next/image"
+import {
+  Heart,
+  Share2,
+  ShoppingCart,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  Clock,
+  Truck,
+  Shield,
+  RotateCcw,
+} from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { productos } from "@/lib/data"
-import { tiendas } from "@/lib/stores-data"
 import { useCart } from "@/lib/cart-store"
 import { toast } from "@/components/ui/use-toast"
 import ReviewsSection from "@/components/reviews-section"
-import { useBehaviorTracking } from "@/hooks/use-behavior-tracking"
 import RecommendationsSection from "@/components/recommendations-section"
 
-export default function ProductPage({ params }: { params: { id: string } }) {
+export default function ProductoPage() {
+  const params = useParams()
   const { addItem } = useCart()
-  const { trackProductView, trackAddToCart } = useBehaviorTracking()
   const [imagenActual, setImagenActual] = useState(0)
-  const producto = productos.find((p) => p.id.toString() === params.id)
+  const [cantidad, setCantidad] = useState(1)
+  const [producto, setProducto] = useState<any>(null)
 
-  // Rastrear vista del producto
-  trackProductView(producto?.id || 0)
+  useEffect(() => {
+    const id = Number.parseInt(params.id as string)
+    const productoEncontrado = productos.find((p) => p.id === id)
+    setProducto(productoEncontrado)
+  }, [params.id])
 
   if (!producto) {
-    return notFound()
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-2">Producto no encontrado</h1>
+            <p className="text-muted-foreground mb-4">El producto que buscas no existe o ha sido eliminado.</p>
+            <Button asChild>
+              <Link href="/">Volver al inicio</Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
-  const tienda = tiendas.find((t) => t.id === producto.tiendaId)
-
-  // Manejar compatibilidad con productos que tienen imagen única
   const imagenes = producto.imagenes || (producto.imagen ? [producto.imagen] : [])
+  const tieneMultiplesImagenes = imagenes.length > 1
+
+  const cambiarImagen = (direccion: "siguiente" | "anterior") => {
+    if (direccion === "siguiente") {
+      setImagenActual((prev) => (prev + 1) % imagenes.length)
+    } else {
+      setImagenActual((prev) => (prev - 1 + imagenes.length) % imagenes.length)
+    }
+  }
+
+  const seleccionarImagen = (index: number) => {
+    setImagenActual(index)
+  }
+
+  const handleAddToCart = () => {
+    for (let i = 0; i < cantidad; i++) {
+      addItem(producto.id)
+    }
+    toast({
+      title: "Producto añadido",
+      description: `${cantidad} ${producto.nombre}(s) añadido(s) al carrito.`,
+    })
+  }
+
+  const precioConDescuento = producto.descuento > 0 ? producto.precio * (1 - producto.descuento / 100) : producto.precio
 
   const getTipoVentaInfo = (tipoVenta: string) => {
     switch (tipoVenta) {
@@ -43,37 +94,29 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         return {
           icon: Package,
           label: "Compra directa",
-          description: "Producto disponible en stock para compra inmediata",
-          color: "bg-green-500",
-          textColor: "text-green-700",
-          bgColor: "bg-green-50",
+          description: "Disponible para entrega inmediata",
+          color: "text-green-600",
         }
       case "pedido":
         return {
           icon: Clock,
           label: "Por pedido",
-          description: "Producto fabricado bajo pedido",
-          color: "bg-orange-500",
-          textColor: "text-orange-700",
-          bgColor: "bg-orange-50",
+          description: "Se prepara especialmente para ti",
+          color: "text-orange-600",
         }
       case "delivery":
         return {
           icon: Truck,
           label: "Delivery/Retiro",
-          description: "Disponible para delivery o retiro en local",
-          color: "bg-blue-500",
-          textColor: "text-blue-700",
-          bgColor: "bg-blue-50",
+          description: "Entrega a domicilio o retiro en tienda",
+          color: "text-blue-600",
         }
       default:
         return {
           icon: Package,
           label: "Disponible",
           description: "Producto disponible",
-          color: "bg-gray-500",
-          textColor: "text-gray-700",
-          bgColor: "bg-gray-50",
+          color: "text-gray-600",
         }
     }
   }
@@ -81,98 +124,94 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const tipoInfo = getTipoVentaInfo(producto.tipoVenta)
   const IconComponent = tipoInfo.icon
 
-  const handleAddToCart = () => {
-    addItem(producto.id)
-    trackAddToCart(producto.id)
-    toast({
-      title: "Producto añadido al carrito",
-      description: `${producto.nombre} ha sido añadido a tu carrito.`,
-    })
-  }
-
-  const siguienteImagen = () => {
-    setImagenActual((prev) => (prev + 1) % imagenes.length)
-  }
-
-  const anteriorImagen = () => {
-    setImagenActual((prev) => (prev - 1 + imagenes.length) % imagenes.length)
-  }
-
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1">
         <div className="container px-4 md:px-6 py-6 md:py-10">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a productos
-          </Link>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
+            <Link href="/" className="hover:text-foreground">
+              Inicio
+            </Link>
+            <span>/</span>
+            <Link href={`/?categoria=${producto.categoria}`} className="hover:text-foreground">
+              {producto.categoria}
+            </Link>
+            <span>/</span>
+            <span className="text-foreground">{producto.nombre}</span>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Galería de imágenes */}
             <div className="space-y-4">
               {/* Imagen principal */}
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-                {imagenes.length > 0 ? (
+              <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+                <Image
+                  src={imagenes[imagenActual] || "/placeholder.svg"}
+                  alt={`${producto.nombre} - Imagen ${imagenActual + 1}`}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+
+                {/* Controles de navegación */}
+                {tieneMultiplesImagenes && (
                   <>
-                    <Image
-                      src={imagenes[imagenActual] || "/placeholder.svg"}
-                      alt={`${producto.nombre} - Imagen ${imagenActual + 1}`}
-                      fill
-                      className="object-cover"
-                    />
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white/90"
+                      onClick={() => cambiarImagen("anterior")}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white/90"
+                      onClick={() => cambiarImagen("siguiente")}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
 
-                    {/* Controles de navegación para múltiples imágenes */}
-                    {imagenes.length > 1 && (
-                      <>
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white/90"
-                          onClick={anteriorImagen}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white/90"
-                          onClick={siguienteImagen}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-
-                        {/* Indicador de imagen actual */}
-                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                          {imagenActual + 1} / {imagenes.length}
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center text-muted-foreground">
-                      <Package className="h-16 w-16 mx-auto mb-4" />
-                      <p>Sin imagen disponible</p>
+                    {/* Indicador de imagen */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-sm px-3 py-1 rounded-full">
+                      {imagenActual + 1} / {imagenes.length}
                     </div>
-                  </div>
+                  </>
                 )}
+
+                {/* Badges */}
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                  {producto.descuento > 0 && <Badge variant="destructive">-{producto.descuento}%</Badge>}
+                  {producto.stock === 0 && producto.tipoVenta !== "delivery" && (
+                    <Badge variant="secondary">Sin stock</Badge>
+                  )}
+                </div>
+
+                {/* Botones de acción */}
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
+                  <Button variant="secondary" size="icon" className="bg-white/80 hover:bg-white/90">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                  <Button variant="secondary" size="icon" className="bg-white/80 hover:bg-white/90">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
               {/* Miniaturas */}
-              {imagenes.length > 1 && (
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+              {tieneMultiplesImagenes && (
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                   {imagenes.map((imagen, index) => (
                     <button
                       key={index}
-                      onClick={() => setImagenActual(index)}
-                      className={`relative aspect-square overflow-hidden rounded-md border-2 transition-all ${
+                      onClick={() => seleccionarImagen(index)}
+                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition-colors ${
                         index === imagenActual
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-muted hover:border-primary/50"
+                          ? "border-primary"
+                          : "border-transparent hover:border-muted-foreground/50"
                       }`}
                     >
                       <Image
@@ -188,162 +227,257 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Información del producto */}
-            <div className="flex flex-col gap-4 lg:gap-6">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <Badge className="w-fit" variant="outline">
-                  {producto.categoria}
-                </Badge>
-                <div className={`flex items-center gap-1 px-3 py-1 rounded-full w-fit ${tipoInfo.bgColor}`}>
-                  <IconComponent className={`h-4 w-4 ${tipoInfo.textColor}`} />
-                  <span className={`text-sm font-medium ${tipoInfo.textColor}`}>{tipoInfo.label}</span>
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <IconComponent className={`h-5 w-5 ${tipoInfo.color}`} />
+                  <span className={`text-sm font-medium ${tipoInfo.color}`}>{tipoInfo.label}</span>
                 </div>
+                <h1 className="text-2xl md:text-3xl font-bold mb-2">{producto.nombre}</h1>
+                <p className="text-muted-foreground">{tipoInfo.description}</p>
               </div>
 
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">{producto.nombre}</h1>
+              {/* Rating */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i < Math.floor(producto.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {producto.rating} ({producto.reviews} reseñas)
+                </span>
+              </div>
 
-              <div className="flex items-center gap-4">
-                <p className="text-2xl md:text-3xl font-semibold">${producto.precio.toFixed(2)}</p>
-                {producto.descuento > 0 && (
-                  <Badge variant="destructive" className="text-sm">
-                    -{producto.descuento}%
-                  </Badge>
+              {/* Precio */}
+              <div className="space-y-2">
+                {producto.descuento > 0 ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-bold text-primary">${precioConDescuento.toFixed(2)}</span>
+                    <span className="text-xl text-muted-foreground line-through">${producto.precio.toFixed(2)}</span>
+                    <Badge variant="destructive">Ahorra ${(producto.precio - precioConDescuento).toFixed(2)}</Badge>
+                  </div>
+                ) : (
+                  <span className="text-3xl font-bold">${producto.precio.toFixed(2)}</span>
                 )}
               </div>
 
-              <p className="text-muted-foreground text-base md:text-lg">{producto.descripcion}</p>
+              {/* Descripción */}
+              <div>
+                <h3 className="font-semibold mb-2">Descripción</h3>
+                <p className="text-muted-foreground leading-relaxed">{producto.descripcion}</p>
+              </div>
 
-              {/* Información específica del tipo de venta */}
+              {/* Información de stock y entrega */}
               <Card>
-                <CardContent className="pt-4">
-                  <div className="flex items-start gap-3">
-                    <IconComponent className={`h-5 w-5 ${tipoInfo.textColor} mt-0.5 flex-shrink-0`} />
-                    <div className="flex-1">
-                      <h3 className="font-medium">{tipoInfo.label}</h3>
-                      <p className="text-sm text-muted-foreground">{tipoInfo.description}</p>
-                      <div className="mt-2 text-sm">
-                        {producto.tipoVenta === "directa" && (
-                          <div>
-                            <p className="font-medium">Stock disponible: {producto.stock} unidades</p>
-                            <p className="text-muted-foreground">Entrega: {producto.tiempoEntrega}</p>
-                          </div>
-                        )}
-                        {producto.tipoVenta === "pedido" && (
-                          <div>
-                            <p className="font-medium">Tiempo de fabricación: {producto.tiempoEntrega}</p>
-                            <p className="text-muted-foreground">Se fabrica especialmente para ti</p>
-                          </div>
-                        )}
-                        {producto.tipoVenta === "delivery" && (
-                          <div>
-                            <p className="font-medium">Tiempo de entrega: {producto.tiempoEntrega}</p>
-                            <p className="text-muted-foreground">También disponible para retiro en local</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Disponibilidad:</span>
+                    <span
+                      className={`font-medium ${
+                        producto.stock > 0 || producto.tipoVenta === "delivery" ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {producto.tipoVenta === "delivery"
+                        ? "Disponible"
+                        : producto.stock > 0
+                          ? `${producto.stock} en stock`
+                          : "Sin stock"}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Tiempo de entrega:</span>
+                    <span className="text-muted-foreground">{producto.tiempoEntrega}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Información de la tienda */}
-              {tienda && (
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
-                        <Image
-                          src={tienda.logo || "/placeholder.svg"}
-                          alt={tienda.nombre}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{tienda.nombre}</h3>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{tienda.ciudad}</span>
-                        </div>
-                      </div>
-                      <Link href={`/tiendas/${tienda.id}`}>
-                        <Button variant="outline" size="sm">
-                          Ver tienda
-                        </Button>
-                      </Link>
+              {/* Controles de compra */}
+              <div className="space-y-4">
+                {producto.tipoVenta === "directa" && producto.stock > 0 && (
+                  <div className="flex items-center gap-4">
+                    <label className="font-medium">Cantidad:</label>
+                    <div className="flex items-center border rounded-md">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCantidad(Math.max(1, cantidad - 1))}
+                        disabled={cantidad <= 1}
+                      >
+                        -
+                      </Button>
+                      <span className="px-4 py-2 min-w-[3rem] text-center">{cantidad}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCantidad(Math.min(producto.stock, cantidad + 1))}
+                        disabled={cantidad >= producto.stock}
+                      >
+                        +
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+                )}
 
-              <div className="flex flex-col sm:flex-row gap-4 mt-6">
-                <Button className="flex-1" onClick={handleAddToCart}>
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  {producto.tipoVenta === "delivery" ? "Pedir ahora" : "Añadir al carrito"}
-                </Button>
-                <Button variant="outline" size="icon" className="sm:w-auto bg-transparent">
-                  <Heart className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    size="lg"
+                    className="flex-1"
+                    onClick={handleAddToCart}
+                    disabled={producto.stock === 0 && producto.tipoVenta !== "delivery"}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {producto.tipoVenta === "delivery" ? "Pedir ahora" : "Añadir al carrito"}
+                  </Button>
+                  <Button variant="outline" size="lg">
+                    Comprar ahora
+                  </Button>
+                </div>
               </div>
 
-              <Tabs defaultValue="descripcion" className="mt-8">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="descripcion">Descripción</TabsTrigger>
-                  <TabsTrigger value="especificaciones">Especificaciones</TabsTrigger>
-                  <TabsTrigger value="entrega">Entrega</TabsTrigger>
-                </TabsList>
-                <TabsContent value="descripcion" className="pt-4">
-                  <p className="text-sm md:text-base leading-relaxed">{producto.descripcionLarga}</p>
-                </TabsContent>
-                <TabsContent value="especificaciones" className="pt-4">
-                  <ul className="list-disc pl-5 space-y-2 text-sm md:text-base">
-                    {producto.especificaciones.map((spec, index) => (
-                      <li key={index}>{spec}</li>
+              {/* Garantías y políticas */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
+                <div className="flex items-center gap-2 text-sm">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <span>Garantía incluida</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <RotateCcw className="h-4 w-4 text-blue-600" />
+                  <span>Devolución gratis</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Truck className="h-4 w-4 text-purple-600" />
+                  <span>Envío seguro</span>
+                </div>
+              </div>
+
+              {/* Tags */}
+              {producto.tags && producto.tags.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Etiquetas:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {producto.tags.map((tag: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {tag}
+                      </Badge>
                     ))}
-                  </ul>
-                </TabsContent>
-                <TabsContent value="entrega" className="pt-4">
-                  <div className="space-y-3 text-sm md:text-base">
-                    <div>
-                      <h4 className="font-medium">Tiempo de entrega</h4>
-                      <p className="text-sm text-muted-foreground">{producto.tiempoEntrega}</p>
-                    </div>
-                    {producto.tipoVenta === "delivery" && (
-                      <div>
-                        <h4 className="font-medium">Opciones disponibles</h4>
-                        <ul className="text-sm text-muted-foreground list-disc pl-5">
-                          <li>Delivery a domicilio</li>
-                          <li>Retiro en local</li>
-                        </ul>
-                      </div>
-                    )}
-                    {producto.tipoVenta === "directa" && producto.stock > 0 && (
-                      <div>
-                        <h4 className="font-medium">Disponibilidad</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {producto.stock} unidades disponibles para entrega inmediata
-                        </p>
-                      </div>
-                    )}
                   </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Sección de reseñas */}
+          {/* Tabs con información adicional */}
           <div className="mt-12">
-            <ReviewsSection productId={producto.id} type="product" />
+            <Tabs defaultValue="detalles" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="detalles">Detalles</TabsTrigger>
+                <TabsTrigger value="especificaciones">Especificaciones</TabsTrigger>
+                <TabsTrigger value="envio">Envío y Devoluciones</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="detalles" className="mt-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-4">Información detallada</h3>
+                    <div className="space-y-4 text-muted-foreground">
+                      <p>{producto.descripcion}</p>
+                      <p>
+                        Este producto de la marca {producto.marca} pertenece a la categoría {producto.categoria}y está
+                        disponible para {tipoInfo.label.toLowerCase()}.
+                      </p>
+                      {producto.descuento > 0 && (
+                        <p className="text-green-600 font-medium">
+                          ¡Oferta especial! Ahorra {producto.descuento}% en este producto.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="especificaciones" className="mt-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-4">Especificaciones técnicas</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Marca:</span>
+                          <span>{producto.marca}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Categoría:</span>
+                          <span>{producto.categoria}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Tipo de venta:</span>
+                          <span>{tipoInfo.label}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="font-medium">Stock:</span>
+                          <span>{producto.tipoVenta === "delivery" ? "Disponible" : `${producto.stock} unidades`}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Tiempo de entrega:</span>
+                          <span>{producto.tiempoEntrega}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Imágenes:</span>
+                          <span>
+                            {imagenes.length} foto{imagenes.length !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="envio" className="mt-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold mb-4">Políticas de envío y devoluciones</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Envío</h4>
+                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                          <li>Tiempo de entrega: {producto.tiempoEntrega}</li>
+                          <li>Envío gratuito en compras superiores a $50</li>
+                          <li>Seguimiento en tiempo real disponible</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Devoluciones</h4>
+                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                          <li>30 días para devoluciones gratuitas</li>
+                          <li>Producto debe estar en condiciones originales</li>
+                          <li>Reembolso completo garantizado</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
 
-          {/* Sección de recomendaciones */}
-          <div className="mt-16">
-            <RecommendationsSection
-              currentProductId={producto.id}
-              showRecentlyViewed={true}
-              showRecommended={true}
-              showStores={true}
-              maxItems={8}
-            />
+          {/* Reseñas */}
+          <div className="mt-12">
+            <ReviewsSection productId={producto.id} />
+          </div>
+
+          {/* Productos recomendados */}
+          <div className="mt-12">
+            <RecommendationsSection currentProductId={producto.id} categoria={producto.categoria} />
           </div>
         </div>
       </main>
