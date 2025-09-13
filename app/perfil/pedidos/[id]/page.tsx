@@ -14,10 +14,9 @@ import {
   Phone,
   Mail,
   CreditCard,
-  Star,
-  MessageCircle,
-  RotateCcw,
   Download,
+  Star,
+  RotateCcw,
 } from "lucide-react"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
@@ -25,12 +24,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { useCart } from "@/lib/cart-store"
+import { toast } from "@/components/ui/use-toast"
 
 interface OrderData {
-  id: string
   customerInfo: {
     name: string
     email: string
@@ -51,103 +49,75 @@ interface OrderData {
   status: string
   estimatedDelivery: string
   orderDate: string
-  deliveryDate?: string
-  store: {
+  storeInfo: {
     name: string
-    id: string
-    rating: number
     phone: string
+    rating: number
+    id: number
   }
-  tracking?: {
-    confirmado: { date: string; time: string }
-    preparando?: { date: string; time: string }
-    en_camino?: { date: string; time: string }
-    entregado?: { date: string; time: string }
-  }
-  rating?: number
-  review?: string
 }
 
 export default function PedidoDetallesPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { addItem } = useCart()
   const [orderData, setOrderData] = useState<OrderData | null>(null)
-  const [showReviewDialog, setShowReviewDialog] = useState(false)
+  const [currentStatus, setCurrentStatus] = useState("confirmado")
+  const [showReviewForm, setShowReviewForm] = useState(false)
   const [rating, setRating] = useState(0)
-  const [review, setReview] = useState("")
+  const [reviewText, setReviewText] = useState("")
 
   useEffect(() => {
-    // Simular carga de datos del pedido
-    const mockOrder: OrderData = {
-      id: params.id,
-      customerInfo: {
-        name: "Juan Pérez",
-        email: "juan.perez@email.com",
-        phone: "+1 234 567 8900",
-      },
-      paymentMethod: "card",
-      deliveryMethod: "delivery",
-      address: {
-        street: "Av. Principal",
-        number: "123",
-        city: "Ciudad",
-        postalCode: "12345",
-        notes: "Apartamento 4B, timbre azul",
-      },
-      total: 45.99,
-      items: [
-        {
-          id: 1,
-          producto: {
-            nombre: "Pizza Margherita",
-            precio: 18.99,
-            imagen: "/placeholder.svg?height=80&width=80&text=Pizza",
-            descuento: 0,
-          },
-          cantidad: 1,
-        },
-        {
-          id: 2,
-          producto: {
-            nombre: "Coca Cola 500ml",
-            precio: 3.5,
-            imagen: "/placeholder.svg?height=80&width=80&text=Coca",
-            descuento: 10,
-          },
-          cantidad: 2,
-        },
-        {
-          id: 3,
-          producto: {
-            nombre: "Papas Fritas",
-            precio: 8.99,
-            imagen: "/placeholder.svg?height=80&width=80&text=Papas",
-            descuento: 0,
-          },
-          cantidad: 1,
-        },
-      ],
-      status: "entregado",
-      estimatedDelivery: "30-45 minutos",
-      orderDate: "2024-01-15 14:30",
-      deliveryDate: "2024-01-15 15:15",
-      store: {
-        name: "Pizzería Don Mario",
-        id: "store-123",
-        rating: 4.8,
-        phone: "+1 234 567 8901",
-      },
-      tracking: {
-        confirmado: { date: "2024-01-15", time: "14:32" },
-        preparando: { date: "2024-01-15", time: "14:45" },
-        en_camino: { date: "2024-01-15", time: "15:00" },
-        entregado: { date: "2024-01-15", time: "15:15" },
-      },
-      rating: 5,
-      review: "Excelente servicio, la pizza llegó caliente y el delivery fue muy rápido.",
-    }
+    // Cargar datos del pedido desde localStorage
+    const storedOrder = localStorage.getItem(`order-${params.id}`)
+    if (storedOrder) {
+      const order = JSON.parse(storedOrder)
 
-    setOrderData(mockOrder)
-  }, [params.id])
+      // Simular datos adicionales del pedido
+      const enhancedOrder: OrderData = {
+        ...order,
+        status: "confirmado",
+        estimatedDelivery: getEstimatedDelivery(order.items),
+        orderDate: new Date().toLocaleString(),
+        storeInfo: {
+          name: "TechStore Premium",
+          phone: "+34 912 345 678",
+          rating: 4.8,
+          id: 1,
+        },
+      }
+
+      setOrderData(enhancedOrder)
+      setCurrentStatus("confirmado")
+
+      // Simular progreso del pedido
+      simulateOrderProgress()
+    } else {
+      router.push("/perfil")
+    }
+  }, [params.id, router])
+
+  const simulateOrderProgress = () => {
+    const statuses = ["confirmado", "preparando", "en_camino", "entregado"]
+    let currentIndex = 0
+
+    const interval = setInterval(() => {
+      currentIndex++
+      if (currentIndex < statuses.length) {
+        setCurrentStatus(statuses[currentIndex])
+      } else {
+        clearInterval(interval)
+      }
+    }, 15000) // Cambiar estado cada 15 segundos para demo
+  }
+
+  const getEstimatedDelivery = (items: any[]) => {
+    const hasDelivery = items.some((item) => item.producto?.tipoVenta === "delivery")
+    const hasPedido = items.some((item) => item.producto?.tipoVenta === "pedido")
+
+    if (hasDelivery) return "30-45 minutos"
+    if (hasPedido) return "7-10 días hábiles"
+    return "3-5 días hábiles"
+  }
 
   const getStatusInfo = (status: string) => {
     switch (status) {
@@ -156,8 +126,8 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
           label: "Pedido confirmado",
           description: "Tu pedido ha sido confirmado y está siendo procesado",
           icon: CheckCircle,
-          color: "text-blue-600",
-          bgColor: "bg-blue-100",
+          color: "text-green-600",
+          bgColor: "bg-green-100",
         }
       case "preparando":
         return {
@@ -172,24 +142,16 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
           label: "En camino",
           description: "Tu pedido está en camino",
           icon: Truck,
-          color: "text-purple-600",
-          bgColor: "bg-purple-100",
+          color: "text-blue-600",
+          bgColor: "bg-blue-100",
         }
       case "entregado":
         return {
           label: "Entregado",
-          description: "Tu pedido ha sido entregado exitosamente",
+          description: "Tu pedido ha sido entregado",
           icon: CheckCircle,
           color: "text-green-600",
           bgColor: "bg-green-100",
-        }
-      case "cancelado":
-        return {
-          label: "Cancelado",
-          description: "El pedido ha sido cancelado",
-          icon: Clock,
-          color: "text-red-600",
-          bgColor: "bg-red-100",
         }
       default:
         return {
@@ -230,42 +192,57 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
     }
   }
 
-  const handleReorderItems = () => {
-    // Simular agregar items al carrito
-    console.log("Reordenando items:", orderData?.items)
-    // Aquí iría la lógica para agregar los items al carrito
-    router.push("/carrito")
-  }
+  const handleRepeatOrder = () => {
+    if (!orderData) return
 
-  const handleSubmitReview = () => {
-    if (rating === 0) return
+    orderData.items.forEach((item) => {
+      if (item.producto) {
+        for (let i = 0; i < item.cantidad; i++) {
+          addItem(item.producto.id)
+        }
+      }
+    })
 
-    // Simular envío de reseña
-    console.log("Enviando reseña:", { rating, review })
-    setShowReviewDialog(false)
-
-    // Actualizar el pedido con la nueva reseña
-    if (orderData) {
-      setOrderData({
-        ...orderData,
-        rating,
-        review,
-      })
-    }
+    toast({
+      title: "Productos añadidos al carrito",
+      description: `Se han añadido ${orderData.items.length} productos a tu carrito`,
+    })
   }
 
   const handleDownloadReceipt = () => {
-    // Simular descarga de comprobante
-    console.log("Descargando comprobante del pedido:", params.id)
+    toast({
+      title: "Descargando comprobante",
+      description: "El comprobante se descargará en breve",
+    })
+  }
+
+  const handleSubmitReview = () => {
+    if (rating === 0) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona una calificación",
+        variant: "destructive",
+      })
+      return
+    }
+
+    toast({
+      title: "Reseña enviada",
+      description: "Gracias por tu opinión",
+    })
+
+    setShowReviewForm(false)
+    setRating(0)
+    setReviewText("")
   }
 
   if (!orderData) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-2">Cargando pedido...</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-2">Cargando pedido...</h1>
             <p className="text-muted-foreground">Por favor espera un momento</p>
           </div>
         </main>
@@ -274,23 +251,19 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
     )
   }
 
-  const statusInfo = getStatusInfo(orderData.status)
+  const statusInfo = getStatusInfo(currentStatus)
   const StatusIcon = statusInfo.icon
+
   const deliveryCost =
     orderData.deliveryMethod === "delivery" ? 3.99 : orderData.deliveryMethod === "shipping" ? 5.99 : 0
-  const subtotal = orderData.items.reduce((sum, item) => {
-    const precio =
-      item.producto.descuento > 0 ? item.producto.precio * (1 - item.producto.descuento / 100) : item.producto.precio
-    return sum + precio * item.cantidad
-  }, 0)
 
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1">
-        <div className="container px-4 md:px-6 py-6 md:py-10">
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="ghost" asChild>
+        <div className="container px-4 md:px-6 py-4 md:py-6 lg:py-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
+            <Button variant="ghost" asChild className="self-start">
               <Link href="/perfil">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Volver al perfil
@@ -298,120 +271,104 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
             </Button>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             <div className="lg:col-span-2 space-y-6">
               {/* Estado del pedido */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-full ${statusInfo.bgColor}`}>
-                        <StatusIcon className={`h-6 w-6 ${statusInfo.color}`} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">{statusInfo.label}</CardTitle>
-                        <p className="text-muted-foreground">{statusInfo.description}</p>
-                      </div>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className={`p-3 rounded-full ${statusInfo.bgColor} flex-shrink-0`}>
+                      <StatusIcon className={`h-6 w-6 ${statusInfo.color}`} />
                     </div>
-                    <Badge variant="outline">#{orderData.id}</Badge>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg md:text-xl">{statusInfo.label}</CardTitle>
+                      <p className="text-muted-foreground text-sm md:text-base">{statusInfo.description}</p>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Pedido realizado: <span className="font-medium">{orderData.orderDate}</span>
-                      </p>
-                      {orderData.deliveryDate && (
-                        <p className="text-sm text-muted-foreground">
-                          Entregado: <span className="font-medium">{orderData.deliveryDate}</span>
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={handleDownloadReceipt}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Comprobante
-                      </Button>
-                      {orderData.status === "entregado" && (
-                        <Button variant="outline" size="sm" onClick={handleReorderItems}>
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Repetir pedido
-                        </Button>
-                      )}
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <p className="text-sm text-muted-foreground">
+                      Tiempo estimado de entrega: <span className="font-medium">{orderData.estimatedDelivery}</span>
+                    </p>
+                    <Badge variant="outline" className="self-start sm:self-auto">
+                      Pedido #{params.id}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Seguimiento del pedido */}
-              {orderData.tracking && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Seguimiento del pedido</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {[
-                        { key: "confirmado", label: "Pedido confirmado", data: orderData.tracking.confirmado },
-                        { key: "preparando", label: "Preparando pedido", data: orderData.tracking.preparando },
-                        { key: "en_camino", label: "En camino", data: orderData.tracking.en_camino },
-                        { key: "entregado", label: "Entregado", data: orderData.tracking.entregado },
-                      ].map((step, index) => {
-                        const isCompleted = step.data !== undefined
-                        const isCurrent = orderData.status === step.key
+              {/* Progreso del pedido */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg md:text-xl">Seguimiento del pedido</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { status: "confirmado", label: "Pedido confirmado", time: orderData.orderDate },
+                      {
+                        status: "preparando",
+                        label: "Preparando pedido",
+                        time: currentStatus === "preparando" ? "Ahora" : "",
+                      },
+                      { status: "en_camino", label: "En camino", time: currentStatus === "en_camino" ? "Ahora" : "" },
+                      { status: "entregado", label: "Entregado", time: currentStatus === "entregado" ? "Ahora" : "" },
+                    ].map((step, index) => {
+                      const isCompleted =
+                        ["confirmado", "preparando", "en_camino", "entregado"].indexOf(currentStatus) >= index
+                      const isCurrent = currentStatus === step.status
 
-                        return (
-                          <div key={step.key} className="flex items-center gap-4">
-                            <div
-                              className={`w-4 h-4 rounded-full border-2 ${
-                                isCompleted ? "bg-primary border-primary" : "bg-background border-muted-foreground"
-                              }`}
-                            />
-                            <div className="flex-1">
-                              <p className={`font-medium ${isCurrent ? "text-primary" : ""}`}>{step.label}</p>
-                              {step.data && (
-                                <p className="text-sm text-muted-foreground">
-                                  {step.data.date} a las {step.data.time}
-                                </p>
-                              )}
-                            </div>
+                      return (
+                        <div key={step.status} className="flex items-center gap-4">
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
+                              isCompleted ? "bg-primary border-primary" : "bg-background border-muted-foreground"
+                            }`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-medium text-sm md:text-base ${isCurrent ? "text-primary" : ""}`}>
+                              {step.label}
+                            </p>
+                            {step.time && <p className="text-xs md:text-sm text-muted-foreground">{step.time}</p>}
                           </div>
-                        )
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Información de la tienda */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Información de la tienda</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{orderData.store.rating}</span>
-                    </div>
+                  <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                    <Package className="h-5 w-5" />
+                    Información de la tienda
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="font-medium">{orderData.store.name}</h4>
-                      <p className="text-sm text-muted-foreground">ID: {orderData.store.id}</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-base md:text-lg">{orderData.storeInfo.name}</h3>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {orderData.storeInfo.phone}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {orderData.storeInfo.rating}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-3 w-3" />
-                      {orderData.store.phone}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/tiendas/${orderData.store.id}`}>Ver tienda</Link>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <Button variant="outline" size="sm" asChild className="w-full sm:w-auto bg-transparent">
+                        <Link href={`/tiendas/${orderData.storeInfo.id}`}>Ver tienda</Link>
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto bg-transparent">
                         <Phone className="h-4 w-4 mr-2" />
-                        Contactar
+                        Llamar
                       </Button>
                     </div>
                   </div>
@@ -421,7 +378,7 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
               {/* Productos del pedido */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Productos ({orderData.items.length})</CardTitle>
+                  <CardTitle className="text-lg md:text-xl">Productos ({orderData.items.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -429,13 +386,12 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
                       const { producto } = item
                       if (!producto) return null
 
-                      const precioOriginal = producto.precio
                       const precioFinal =
-                        producto.descuento > 0 ? precioOriginal * (1 - producto.descuento / 100) : precioOriginal
+                        producto.descuento > 0 ? producto.precio * (1 - producto.descuento / 100) : producto.precio
 
                       return (
                         <div key={index} className="flex gap-4 p-4 border rounded-lg">
-                          <div className="relative h-16 w-16 flex-shrink-0">
+                          <div className="relative h-16 w-16 md:h-20 md:w-20 flex-shrink-0">
                             <Image
                               src={producto.imagen || "/placeholder.svg"}
                               alt={producto.nombre}
@@ -443,25 +399,23 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
                               className="object-cover rounded"
                             />
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-medium">{producto.nombre}</h3>
-                            <p className="text-sm text-muted-foreground">Cantidad: {item.cantidad}</p>
-                            <div className="flex items-center gap-2">
-                              {producto.descuento > 0 && (
-                                <span className="text-sm text-muted-foreground line-through">
-                                  ${precioOriginal.toFixed(2)}
-                                </span>
-                              )}
-                              <span className="font-semibold">${precioFinal.toFixed(2)} c/u</span>
-                              {producto.descuento > 0 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  -{producto.descuento}%
-                                </Badge>
-                              )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-sm md:text-base line-clamp-2">{producto.nombre}</h3>
+                                <p className="text-xs md:text-sm text-muted-foreground">Cantidad: {item.cantidad}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-semibold text-sm md:text-base">
+                                  ${(precioFinal * item.cantidad).toFixed(2)}
+                                </p>
+                                {producto.descuento > 0 && (
+                                  <p className="text-xs text-muted-foreground line-through">
+                                    ${(producto.precio * item.cantidad).toFixed(2)}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <p className="font-semibold text-primary">
-                              Total: ${(precioFinal * item.cantidad).toFixed(2)}
-                            </p>
                           </div>
                         </div>
                       )
@@ -474,108 +428,79 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
               {orderData.address && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                       <MapPin className="h-5 w-5" />
                       Dirección de entrega
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <p className="font-medium">
+                      <p className="font-medium text-sm md:text-base">
                         {orderData.address.street} {orderData.address.number}
                       </p>
-                      <p className="text-muted-foreground">
+                      <p className="text-muted-foreground text-sm md:text-base">
                         {orderData.address.postalCode} {orderData.address.city}
                       </p>
                       {orderData.address.notes && (
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Notas:</strong> {orderData.address.notes}
-                        </p>
+                        <p className="text-xs md:text-sm text-muted-foreground">Notas: {orderData.address.notes}</p>
                       )}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Reseña del pedido */}
-              {orderData.status === "entregado" && (
+              {/* Formulario de reseña */}
+              {currentStatus === "entregado" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Tu reseña</span>
-                      {!orderData.rating && (
-                        <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <MessageCircle className="h-4 w-4 mr-2" />
-                              Escribir reseña
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Califica tu experiencia</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label>Calificación</Label>
-                                <div className="flex gap-1 mt-2">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <button key={star} onClick={() => setRating(star)} className="p-1">
-                                      <Star
-                                        className={`h-6 w-6 ${
-                                          star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                        }`}
-                                      />
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                              <div>
-                                <Label htmlFor="review">Comentario (opcional)</Label>
-                                <Textarea
-                                  id="review"
-                                  placeholder="Cuéntanos sobre tu experiencia..."
-                                  value={review}
-                                  onChange={(e) => setReview(e.target.value)}
-                                  className="mt-2"
-                                />
-                              </div>
-                              <div className="flex gap-2 justify-end">
-                                <Button variant="outline" onClick={() => setShowReviewDialog(false)}>
-                                  Cancelar
-                                </Button>
-                                <Button onClick={handleSubmitReview} disabled={rating === 0}>
-                                  Enviar reseña
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                    </CardTitle>
+                    <CardTitle className="text-lg md:text-xl">¿Cómo fue tu experiencia?</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {orderData.rating ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
+                    {!showReviewForm ? (
+                      <Button onClick={() => setShowReviewForm(true)} className="w-full sm:w-auto">
+                        <Star className="h-4 w-4 mr-2" />
+                        Escribir reseña
+                      </Button>
+                    ) : (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Tu calificación</label>
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-4 w-4 ${
-                                  star <= orderData.rating! ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                }`}
-                              />
+                              <button key={star} onClick={() => setRating(star)} className="p-1">
+                                <Star
+                                  className={`h-6 w-6 ${
+                                    star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                  }`}
+                                />
+                              </button>
                             ))}
                           </div>
-                          <span className="font-medium">{orderData.rating}/5</span>
                         </div>
-                        {orderData.review && <p className="text-muted-foreground">{orderData.review}</p>}
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Tu comentario</label>
+                          <Textarea
+                            placeholder="Comparte tu experiencia con este pedido..."
+                            value={reviewText}
+                            onChange={(e) => setReviewText(e.target.value)}
+                            className="min-h-[100px] resize-none"
+                          />
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button onClick={handleSubmitReview} className="w-full sm:w-auto">
+                            Enviar reseña
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowReviewForm(false)}
+                            className="w-full sm:w-auto"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-muted-foreground">
-                        ¿Cómo fue tu experiencia? Ayuda a otros usuarios compartiendo tu opinión.
-                      </p>
                     )}
                   </CardContent>
                 </Card>
@@ -586,19 +511,19 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
             <div className="lg:col-span-1 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Información del pedido</CardTitle>
+                  <CardTitle className="text-lg md:text-xl">Información del pedido</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">Información de contacto</h4>
-                    <div className="space-y-1 text-sm">
+                    <h4 className="font-medium mb-2 text-sm md:text-base">Información de contacto</h4>
+                    <div className="space-y-1 text-xs md:text-sm">
                       <div className="flex items-center gap-2">
-                        <Phone className="h-3 w-3" />
-                        {orderData.customerInfo.phone}
+                        <Phone className="h-3 w-3 flex-shrink-0" />
+                        <span className="break-all">{orderData.customerInfo.phone}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Mail className="h-3 w-3" />
-                        {orderData.customerInfo.email}
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span className="break-all">{orderData.customerInfo.email}</span>
                       </div>
                     </div>
                   </div>
@@ -606,20 +531,20 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
                   <Separator />
 
                   <div>
-                    <h4 className="font-medium mb-2">Método de pago</h4>
-                    <div className="flex items-center gap-2 text-sm">
-                      <CreditCard className="h-3 w-3" />
-                      {getPaymentMethodLabel(orderData.paymentMethod)}
+                    <h4 className="font-medium mb-2 text-sm md:text-base">Método de pago</h4>
+                    <div className="flex items-center gap-2 text-xs md:text-sm">
+                      <CreditCard className="h-3 w-3 flex-shrink-0" />
+                      <span>{getPaymentMethodLabel(orderData.paymentMethod)}</span>
                     </div>
                   </div>
 
                   <Separator />
 
                   <div>
-                    <h4 className="font-medium mb-2">Método de entrega</h4>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Truck className="h-3 w-3" />
-                      {getDeliveryMethodLabel(orderData.deliveryMethod)}
+                    <h4 className="font-medium mb-2 text-sm md:text-base">Método de entrega</h4>
+                    <div className="flex items-center gap-2 text-xs md:text-sm">
+                      <Truck className="h-3 w-3 flex-shrink-0" />
+                      <span>{getDeliveryMethodLabel(orderData.deliveryMethod)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -627,12 +552,12 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Resumen de pago</CardTitle>
+                  <CardTitle className="text-lg md:text-xl">Resumen de pago</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>${orderData.total.toFixed(2)}</span>
                   </div>
 
                   {deliveryCost > 0 && (
@@ -646,16 +571,22 @@ export default function PedidoDetallesPage({ params }: { params: { id: string } 
 
                   <div className="flex justify-between font-semibold">
                     <span>Total</span>
-                    <span>${orderData.total.toFixed(2)}</span>
+                    <span>${(orderData.total + deliveryCost).toFixed(2)}</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <div className="space-y-2">
-                <Button className="w-full" onClick={handleReorderItems}>
+              <div className="space-y-3">
+                <Button onClick={handleRepeatOrder} className="w-full">
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Repetir pedido
                 </Button>
+
+                <Button variant="outline" onClick={handleDownloadReceipt} className="w-full bg-transparent">
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar comprobante
+                </Button>
+
                 <Button variant="outline" className="w-full bg-transparent" asChild>
                   <Link href="/">Seguir comprando</Link>
                 </Button>

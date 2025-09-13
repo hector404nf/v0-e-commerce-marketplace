@@ -1,75 +1,65 @@
-class GoogleMapsLoader {
-  private static instance: GoogleMapsLoader
-  private isLoaded = false
-  private isLoading = false
-  private callbacks: (() => void)[] = []
-  private apiKey: string | null = null
+let isLoading = false
+let isLoaded = false
+let loadPromise: Promise<void> | null = null
 
-  private constructor() {
-    // Get API key from environment variable
-    this.apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || null
+export const loadGoogleMaps = (): Promise<void> => {
+  if (isLoaded) {
+    return Promise.resolve()
   }
 
-  static getInstance(): GoogleMapsLoader {
-    if (!GoogleMapsLoader.instance) {
-      GoogleMapsLoader.instance = new GoogleMapsLoader()
-    }
-    return GoogleMapsLoader.instance
+  if (isLoading && loadPromise) {
+    return loadPromise
   }
 
-  isApiKeyConfigured(): boolean {
-    return this.apiKey !== null && this.apiKey.trim() !== ""
-  }
+  isLoading = true
 
-  load(callback?: () => void): void {
-    if (!this.isApiKeyConfigured()) {
-      console.error("Google Maps API key is not configured")
+  loadPromise = new Promise((resolve, reject) => {
+    // Verificar si Google Maps ya está cargado
+    if (window.google && window.google.maps) {
+      isLoaded = true
+      isLoading = false
+      resolve()
       return
     }
 
-    if (callback) {
-      this.callbacks.push(callback)
-    }
-
-    if (this.isLoaded) {
-      this.executeCallbacks()
-      return
-    }
-
-    if (this.isLoading) {
-      return
-    }
-
-    this.isLoading = true
-
-    // Create script element
+    // Crear el script
     const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${this.apiKey}&libraries=drawing&loading=async`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places,drawing`
     script.async = true
     script.defer = true
 
     script.onload = () => {
-      this.isLoaded = true
-      this.isLoading = false
-      this.executeCallbacks()
+      isLoaded = true
+      isLoading = false
+      resolve()
     }
 
     script.onerror = (error) => {
-      console.error("Error loading Google Maps API:", error)
-      this.isLoading = false
+      isLoading = false
+      loadPromise = null
+      reject(new Error("Failed to load Google Maps API"))
+    }
+
+    // Timeout de 30 segundos
+    const timeout = setTimeout(() => {
+      isLoading = false
+      loadPromise = null
+      reject(new Error("Google Maps API load timeout"))
+    }, 30000)
+
+    script.onload = () => {
+      clearTimeout(timeout)
+      isLoaded = true
+      isLoading = false
+      resolve()
     }
 
     document.head.appendChild(script)
-  }
+  })
 
-  private executeCallbacks(): void {
-    this.callbacks.forEach((callback) => callback())
-    this.callbacks = []
-  }
-
-  isGoogleMapsLoaded(): boolean {
-    return this.isLoaded && typeof window !== "undefined" && window.google && window.google.maps
-  }
+  return loadPromise
 }
 
-export default GoogleMapsLoader
+export const isGoogleMapsLoaded = (): boolean => {
+  return isLoaded && window.google && window.google.maps
+}
