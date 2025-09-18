@@ -1,5 +1,6 @@
 import type React from "react"
 import AdminSidebar from "@/components/admin-sidebar"
+import AdminBottomNav from "@/components/admin-bottom-nav"
 
 export default function AdminLayout({
   children,
@@ -9,8 +10,9 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
-      <main className="lg:ml-64 p-4 lg:p-8">
-        <div className="max-w-7xl mx-auto">{children}</div>
+      <AdminBottomNav />
+      <main className="lg:ml-64 pb-16 lg:pb-0">
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
   )

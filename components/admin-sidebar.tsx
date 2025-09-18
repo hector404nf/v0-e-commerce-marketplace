@@ -11,16 +11,17 @@ import {
   BarChart3,
   Settings,
   Store,
-  Menu,
-  X,
-  LogOut,
   ChevronDown,
   Plus,
   Eye,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const menuItems = [
   {
@@ -76,11 +77,12 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ storeName = "Mi Tienda" }: AdminSidebarProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
   const pathname = usePathname()
 
   const toggleSubmenu = (title: string) => {
+    if (isCollapsed) return
     setOpenSubmenu(openSubmenu === title ? null : title)
   }
 
@@ -92,118 +94,155 @@ export default function AdminSidebar({ storeName = "Mi Tienda" }: AdminSidebarPr
   }
 
   return (
-    <>
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-4 z-50 lg:hidden"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </Button>
-
-      {/* Overlay for mobile */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />}
-
-      {/* Sidebar */}
+    <TooltipProvider>
       <aside
-        className={`fixed left-0 top-0 z-40 h-full w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed left-0 top-0 z-30 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out hidden lg:flex flex-col ${
+          isCollapsed ? "w-16" : "w-64"
         }`}
       >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center">
-                <Store className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg">{storeName}</h2>
-                <p className="text-sm text-muted-foreground">Panel Admin</p>
+        {/* Header */}
+        <div className={`p-4 border-b border-gray-200 ${isCollapsed ? "px-2" : ""}`}>
+          {isCollapsed ? (
+            <div className="flex justify-center">
+              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+                <Store className="h-5 w-5 text-white" />
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+                  <Store className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-sm">{storeName}</h2>
+                  <p className="text-xs text-muted-foreground">Panel Admin</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {menuItems.map((item) => (
-              <div key={item.title}>
-                {item.submenu ? (
-                  <Collapsible open={openSubmenu === item.title} onOpenChange={() => toggleSubmenu(item.title)}>
-                    <CollapsibleTrigger asChild>
-                      <Button variant={isActive(item.href) ? "secondary" : "ghost"} className="w-full justify-between">
-                        <div className="flex items-center gap-3">
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.title}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {item.badge && (
-                            <Badge variant="secondary" className="text-xs">
-                              {item.badge}
-                            </Badge>
-                          )}
-                          <ChevronDown className="h-4 w-4" />
-                        </div>
+        {/* Toggle Button */}
+        <div className="absolute -right-3 top-20 z-10">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-6 w-6 rounded-full bg-white shadow-md"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {menuItems.map((item) => (
+            <div key={item.title}>
+              {item.submenu && !isCollapsed ? (
+                <Collapsible open={openSubmenu === item.title} onOpenChange={() => toggleSubmenu(item.title)}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant={isActive(item.href) ? "secondary" : "ghost"}
+                      className="w-full justify-between h-10"
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {item.badge && (
+                          <Badge variant="secondary" className="text-xs h-5">
+                            {item.badge}
+                          </Badge>
+                        )}
+                        <ChevronDown className="h-3 w-3" />
+                      </div>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1 mt-1 ml-4">
+                    {item.submenu.map((subItem) => (
+                      <Button
+                        key={subItem.href}
+                        variant={pathname === subItem.href ? "secondary" : "ghost"}
+                        size="sm"
+                        asChild
+                        className="w-full justify-start h-8"
+                      >
+                        <Link href={subItem.href}>
+                          <subItem.icon className="h-3 w-3 mr-2" />
+                          <span className="text-xs">{subItem.title}</span>
+                        </Link>
                       </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-1 mt-1 ml-4">
-                      {item.submenu.map((subItem) => (
-                        <Button
-                          key={subItem.href}
-                          variant={pathname === subItem.href ? "secondary" : "ghost"}
-                          size="sm"
-                          asChild
-                          className="w-full justify-start"
-                        >
-                          <Link href={subItem.href} onClick={() => setIsOpen(false)}>
-                            <subItem.icon className="h-4 w-4 mr-2" />
-                            {subItem.title}
-                          </Link>
-                        </Button>
-                      ))}
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : (
-                  <Button
-                    variant={isActive(item.href) ? "secondary" : "ghost"}
-                    asChild
-                    className="w-full justify-start"
-                  >
-                    <Link href={item.href} onClick={() => setIsOpen(false)}>
-                      <item.icon className="h-5 w-5 mr-3" />
-                      <span>{item.title}</span>
-                      {item.badge && (
-                        <Badge variant="secondary" className="ml-auto text-xs">
-                          {item.badge}
-                        </Badge>
-                      )}
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            ))}
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <Users className="h-4 w-4" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Admin Usuario</p>
-                <p className="text-xs text-muted-foreground">admin@tienda.com</p>
-              </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={isActive(item.href) ? "secondary" : "ghost"}
+                      asChild
+                      className={`w-full h-10 ${isCollapsed ? "justify-center px-0" : "justify-start"}`}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="h-4 w-4" />
+                        {!isCollapsed && (
+                          <>
+                            <span className="ml-3 text-sm">{item.title}</span>
+                            {item.badge && (
+                              <Badge variant="secondary" className="ml-auto text-xs h-5">
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  {isCollapsed && (
+                    <TooltipContent side="right">
+                      <p>{item.title}</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              )}
             </div>
-            <Button variant="ghost" size="sm" className="w-full justify-start text-red-600 hover:text-red-700">
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar sesión
-            </Button>
-          </div>
+          ))}
+        </nav>
+
+        {/* Footer */}
+        <div className={`p-2 border-t border-gray-200 ${isCollapsed ? "px-1" : ""}`}>
+          {isCollapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="w-full h-10">
+                  <LogOut className="h-4 w-4 text-red-600" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Cerrar sesión</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-2">
+                <div className="h-6 w-6 bg-gray-200 rounded-full flex items-center justify-center">
+                  <Users className="h-3 w-3" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">Admin Usuario</p>
+                  <p className="text-[10px] text-muted-foreground truncate">admin@tienda.com</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="w-full justify-start text-red-600 hover:text-red-700 h-8">
+                <LogOut className="h-3 w-3 mr-2" />
+                <span className="text-xs">Cerrar sesión</span>
+              </Button>
+            </div>
+          )}
         </div>
       </aside>
-    </>
+    </TooltipProvider>
   )
 }
