@@ -2,50 +2,53 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Package, ShoppingCart, Users, BarChart3, Settings } from "lucide-react"
+import { Home, Store, Package, ShoppingCart, User, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useCartStore } from "@/lib/cart-store"
 
 const navItems = [
   {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/admin",
+    title: "Inicio",
+    icon: Home,
+    href: "/",
   },
   {
     title: "Productos",
     icon: Package,
-    href: "/admin/productos",
-    badge: "45",
+    href: "/productos",
   },
   {
-    title: "Pedidos",
+    title: "Tiendas",
+    icon: Store,
+    href: "/tiendas",
+  },
+  {
+    title: "Buscar",
+    icon: Search,
+    href: "/busqueda-inteligente",
+  },
+  {
+    title: "Carrito",
     icon: ShoppingCart,
-    href: "/admin/pedidos",
-    badge: "12",
+    href: "/carrito",
+    showBadge: true,
   },
   {
-    title: "Clientes",
-    icon: Users,
-    href: "/admin/clientes",
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    href: "/admin/analytics",
-  },
-  {
-    title: "Config",
-    icon: Settings,
-    href: "/admin/configuracion",
+    title: "Perfil",
+    icon: User,
+    href: "/perfil",
   },
 ]
 
-export default function AdminBottomNav() {
+export default function MainBottomNav() {
   const pathname = usePathname()
+  const { items } = useCartStore()
+
+  const totalItems = items.reduce((sum, item) => sum + item.cantidad, 0)
 
   const isActive = (href: string) => {
-    if (href === "/admin") {
-      return pathname === "/admin"
+    if (href === "/") {
+      return pathname === "/"
     }
     return pathname.startsWith(href)
   }
@@ -65,9 +68,9 @@ export default function AdminBottomNav() {
           >
             <item.icon className="h-5 w-5" />
             <span className="truncate">{item.title}</span>
-            {item.badge && (
+            {item.showBadge && totalItems > 0 && (
               <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]">
-                {item.badge}
+                {totalItems}
               </Badge>
             )}
           </Link>

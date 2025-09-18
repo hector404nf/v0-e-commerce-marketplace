@@ -9,11 +9,16 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Sidebar para desktop */}
       <AdminSidebar />
-      <AdminBottomNav />
+
+      {/* Contenido principal */}
       <main className="lg:ml-64 pb-16 lg:pb-0">
-        <div className="p-4 lg:p-8 max-w-7xl mx-auto">{children}</div>
+        <div className="p-4 lg:p-6">{children}</div>
       </main>
+
+      {/* Bottom navigation para móviles */}
+      <AdminBottomNav />
     </div>
   )
 }

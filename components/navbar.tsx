@@ -13,79 +13,64 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { ShoppingCart, User, Menu, Search, Store, Package, Settings, LogOut, Bell, Heart, MapPin } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ShoppingCart, User, Search, Bell, Heart, Settings, LogOut, Store, Package, MapPin } from "lucide-react"
 import { useCartStore } from "@/lib/cart-store"
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const pathname = usePathname()
   const { items } = useCartStore()
 
   const totalItems = items.reduce((sum, item) => sum + item.cantidad, 0)
 
-  const navigation = [
-    { name: "Inicio", href: "/" },
-    { name: "Productos", href: "/productos" },
-    { name: "Tiendas", href: "/tiendas" },
-    { name: "Categorías", href: "/categorias" },
-  ]
-
-  const isActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/"
-    }
-    return pathname.startsWith(href)
-  }
-
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:ml-64">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          {/* Logo para móviles */}
+          <Link href="/" className="flex items-center space-x-2 lg:hidden">
             <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
               <Store className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-xl">Marketplace</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive(item.href) ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {item.name}
-              </Link>
-            ))}
+          {/* Barra de búsqueda */}
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar productos, tiendas..."
+                className="pl-10 pr-4"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Search Button */}
-            <Button variant="ghost" size="icon" asChild>
+          {/* Acciones del usuario */}
+          <div className="flex items-center space-x-2">
+            {/* Búsqueda móvil */}
+            <Button variant="ghost" size="icon" className="md:hidden" asChild>
               <Link href="/busqueda-inteligente">
                 <Search className="h-5 w-5" />
               </Link>
             </Button>
 
-            {/* Notifications */}
-            <Button variant="ghost" size="icon">
+            {/* Notificaciones */}
+            <Button variant="ghost" size="icon" className="hidden lg:flex">
               <Bell className="h-5 w-5" />
             </Button>
 
-            {/* Wishlist */}
-            <Button variant="ghost" size="icon">
+            {/* Lista de deseos */}
+            <Button variant="ghost" size="icon" className="hidden lg:flex">
               <Heart className="h-5 w-5" />
             </Button>
 
-            {/* Cart */}
-            <Button variant="ghost" size="icon" className="relative" asChild>
+            {/* Carrito - Solo desktop */}
+            <Button variant="ghost" size="icon" className="relative hidden lg:flex" asChild>
               <Link href="/carrito">
                 <ShoppingCart className="h-5 w-5" />
                 {totalItems > 0 && (
@@ -96,7 +81,7 @@ export default function Navbar() {
               </Link>
             </Button>
 
-            {/* User Menu */}
+            {/* Menú de usuario */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -151,58 +136,6 @@ export default function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Mobile Menu */}
-            <Sheet open={isOpen} onOpenChange={setIsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-80">
-                <div className="flex flex-col space-y-4 mt-8">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setIsOpen(false)}
-                      className={`text-lg font-medium transition-colors hover:text-primary ${
-                        isActive(item.href) ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-
-                  <div className="border-t pt-4 space-y-2">
-                    <Link
-                      href="/perfil"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center space-x-2 text-lg font-medium text-muted-foreground hover:text-primary"
-                    >
-                      <User className="h-5 w-5" />
-                      <span>Perfil</span>
-                    </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center space-x-2 text-lg font-medium text-muted-foreground hover:text-primary"
-                    >
-                      <Settings className="h-5 w-5" />
-                      <span>Admin Panel</span>
-                    </Link>
-                    <Link
-                      href="/dashboard-tienda"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center space-x-2 text-lg font-medium text-muted-foreground hover:text-primary"
-                    >
-                      <Store className="h-5 w-5" />
-                      <span>Dashboard Tienda</span>
-                    </Link>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
           </div>
         </div>
       </div>
