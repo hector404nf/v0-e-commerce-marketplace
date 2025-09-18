@@ -5,312 +5,221 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Home,
-  Store,
   Package,
+  Store,
+  Search,
   ShoppingCart,
   User,
-  Search,
-  Heart,
-  MapPin,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Bell,
-  Plus,
-  Eye,
   ChevronDown,
+  ChevronRight,
+  Monitor,
+  Shirt,
+  HomeIcon,
+  Dumbbell,
+  UserCircle,
+  MapPin,
+  Heart,
+  BarChart3,
+  Settings,
+  Upload,
+  Shield,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useCartStore } from "@/lib/cart-store"
+import { useCart } from "@/lib/cart-store"
 
-const menuItems = [
-  {
-    title: "Inicio",
-    icon: Home,
-    href: "/",
-    badge: null,
-  },
-  {
-    title: "Productos",
-    icon: Package,
-    href: "/productos",
-    badge: null,
-    submenu: [
-      { title: "Ver todos", icon: Eye, href: "/productos" },
-      { title: "Electrónica", icon: Package, href: "/productos?categoria=electronica" },
-      { title: "Ropa", icon: Package, href: "/productos?categoria=ropa" },
-      { title: "Hogar", icon: Package, href: "/productos?categoria=hogar" },
-      { title: "Deportes", icon: Package, href: "/productos?categoria=deportes" },
-    ],
-  },
-  {
-    title: "Tiendas",
-    icon: Store,
-    href: "/tiendas",
-    badge: null,
-  },
-  {
-    title: "Búsqueda",
-    icon: Search,
-    href: "/busqueda-inteligente",
-    badge: null,
-  },
-  {
-    title: "Mi Cuenta",
-    icon: User,
-    href: "/perfil",
-    badge: null,
-    submenu: [
-      { title: "Perfil", icon: User, href: "/perfil" },
-      { title: "Mis Pedidos", icon: Package, href: "/perfil/pedidos" },
-      { title: "Direcciones", icon: MapPin, href: "/perfil/direcciones" },
-      { title: "Lista de Deseos", icon: Heart, href: "/perfil/wishlist" },
-    ],
-  },
-  {
-    title: "Mi Tienda",
-    icon: Store,
-    href: "/dashboard-tienda",
-    badge: null,
-    submenu: [
-      { title: "Dashboard", icon: Eye, href: "/dashboard-tienda" },
-      { title: "Productos", icon: Package, href: "/dashboard-tienda/productos" },
-      { title: "Pedidos", icon: ShoppingCart, href: "/dashboard-tienda/pedidos" },
-      { title: "Clientes", icon: User, href: "/dashboard-tienda/clientes" },
-      { title: "Subir Producto", icon: Plus, href: "/subir-producto" },
-      { title: "Admin Panel", icon: Settings, href: "/admin" },
-    ],
-  },
-]
-
-interface MainSidebarProps {
+interface SidebarProps {
   className?: string
 }
 
-export default function MainSidebar({ className }: MainSidebarProps) {
+export function MainSidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
+  const [expandedSections, setExpandedSections] = useState<string[]>(["productos"])
   const pathname = usePathname()
-  const { items } = useCartStore()
+  const { getTotalItems } = useCart()
+  const totalItems = getTotalItems()
 
-  const totalItems = items.reduce((sum, item) => sum + item.cantidad, 0)
-
-  const toggleSubmenu = (title: string) => {
-    if (isCollapsed) return
-    setOpenSubmenu(openSubmenu === title ? null : title)
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => (prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]))
   }
 
+  const menuItems = [
+    {
+      id: "inicio",
+      title: "Inicio",
+      icon: Home,
+      href: "/",
+      badge: null,
+    },
+    {
+      id: "productos",
+      title: "Productos",
+      icon: Package,
+      href: "/productos",
+      badge: null,
+      submenu: [
+        { title: "Ver todos", href: "/productos", icon: Package },
+        { title: "Electrónica", href: "/productos?categoria=electronica", icon: Monitor },
+        { title: "Ropa", href: "/productos?categoria=ropa", icon: Shirt },
+        { title: "Hogar", href: "/productos?categoria=hogar", icon: HomeIcon },
+        { title: "Deportes", href: "/productos?categoria=deportes", icon: Dumbbell },
+      ],
+    },
+    {
+      id: "tiendas",
+      title: "Tiendas",
+      icon: Store,
+      href: "/tiendas",
+      badge: null,
+    },
+    {
+      id: "buscar",
+      title: "Búsqueda Inteligente",
+      icon: Search,
+      href: "/busqueda-inteligente",
+      badge: null,
+    },
+    {
+      id: "carrito",
+      title: "Carrito",
+      icon: ShoppingCart,
+      href: "/carrito",
+      badge: totalItems > 0 ? totalItems : null,
+    },
+    {
+      id: "cuenta",
+      title: "Mi Cuenta",
+      icon: User,
+      href: "/perfil",
+      badge: null,
+      submenu: [
+        { title: "Mi Perfil", href: "/perfil", icon: UserCircle },
+        { title: "Mis Pedidos", href: "/perfil/pedidos", icon: Package },
+        { title: "Direcciones", href: "/perfil/direcciones", icon: MapPin },
+        { title: "Lista de Deseos", href: "/perfil/wishlist", icon: Heart },
+      ],
+    },
+    {
+      id: "tienda",
+      title: "Mi Tienda",
+      icon: Store,
+      href: "/dashboard-tienda",
+      badge: null,
+      submenu: [
+        { title: "Dashboard", href: "/dashboard-tienda", icon: BarChart3 },
+        { title: "Mis Productos", href: "/dashboard-tienda/productos", icon: Package },
+        { title: "Pedidos", href: "/dashboard-tienda/pedidos", icon: ShoppingCart },
+        { title: "Clientes", href: "/dashboard-tienda/clientes", icon: User },
+        { title: "Subir Producto", href: "/subir-producto", icon: Upload },
+        { title: "Admin Panel", href: "/admin", icon: Shield },
+        { title: "Configuración", href: "/dashboard-tienda/configuracion", icon: Settings },
+      ],
+    },
+  ]
+
   const isActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/"
-    }
+    if (href === "/") return pathname === "/"
     return pathname.startsWith(href)
   }
 
   return (
-    <TooltipProvider>
-      <aside
-        className={`fixed left-0 top-0 z-30 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out hidden lg:flex flex-col ${
-          isCollapsed ? "w-16" : "w-64"
-        } ${className}`}
+    <>
+      {/* Sidebar para desktop */}
+      <div
+        className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 ${isCollapsed ? "lg:w-16" : "lg:w-64"} transition-all duration-300 ${className}`}
       >
-        {/* Header */}
-        <div className={`p-4 border-b border-gray-200 ${isCollapsed ? "px-2" : ""}`}>
-          {isCollapsed ? (
-            <div className="flex justify-center">
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <Store className="h-5 w-5 text-white" />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <Store className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 className="font-bold text-lg">Marketplace</h2>
-                <p className="text-xs text-muted-foreground">Tu tienda online</p>
-              </div>
-            </div>
-          )}
-        </div>
+        <div className="flex flex-col flex-1 bg-white border-r border-gray-200">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            {!isCollapsed && (
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                  <Store className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-gray-900">Marketplace</span>
+              </Link>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(!isCollapsed)} className="ml-auto">
+              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            </Button>
+          </div>
 
-        {/* Toggle Button */}
-        <div className="absolute -right-3 top-20 z-10">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-6 w-6 rounded-full bg-white shadow-md"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-          </Button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => (
-            <div key={item.title}>
-              {item.submenu && !isCollapsed ? (
-                <Collapsible open={openSubmenu === item.title} onOpenChange={() => toggleSubmenu(item.title)}>
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      variant={isActive(item.href) ? "secondary" : "ghost"}
-                      className="w-full justify-between h-10"
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4" />
-                        <span className="text-sm">{item.title}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
+          {/* Navigation */}
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            {menuItems.map((item) => (
+              <div key={item.id}>
+                <div className="flex items-center">
+                  <Link
+                    href={item.href}
+                    className={`flex items-center flex-1 px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive(item.href)
+                        ? "bg-primary text-white"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    }`}
+                  >
+                    <item.icon className={`${isCollapsed ? "w-5 h-5" : "w-5 h-5 mr-3"} flex-shrink-0`} />
+                    {!isCollapsed && (
+                      <>
+                        <span className="flex-1">{item.title}</span>
                         {item.badge && (
-                          <Badge variant="secondary" className="text-xs h-5">
+                          <Badge variant="secondary" className="ml-2">
                             {item.badge}
                           </Badge>
                         )}
-                        <ChevronDown className="h-3 w-3" />
-                      </div>
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-1 mt-1 ml-4">
-                    {item.submenu.map((subItem) => (
-                      <Button
-                        key={subItem.href}
-                        variant={pathname === subItem.href ? "secondary" : "ghost"}
-                        size="sm"
-                        asChild
-                        className="w-full justify-start h-8"
-                      >
-                        <Link href={subItem.href}>
-                          <subItem.icon className="h-3 w-3 mr-2" />
-                          <span className="text-xs">{subItem.title}</span>
-                        </Link>
-                      </Button>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={isActive(item.href) ? "secondary" : "ghost"}
-                      asChild
-                      className={`w-full h-10 ${isCollapsed ? "justify-center px-0" : "justify-start"}`}
-                    >
-                      <Link href={item.href}>
-                        <item.icon className="h-4 w-4" />
-                        {!isCollapsed && (
-                          <>
-                            <span className="ml-3 text-sm">{item.title}</span>
-                            {item.badge && (
-                              <Badge variant="secondary" className="ml-auto text-xs h-5">
-                                {item.badge}
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  {isCollapsed && (
-                    <TooltipContent side="right">
-                      <p>{item.title}</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        {/* Cart Section */}
-        <div className={`p-2 border-t border-gray-200 ${isCollapsed ? "px-1" : ""}`}>
-          {isCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-full h-10 relative" asChild>
-                  <Link href="/carrito">
-                    <ShoppingCart className="h-4 w-4" />
-                    {totalItems > 0 && (
-                      <Badge className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]">
-                        {totalItems}
-                      </Badge>
+                      </>
                     )}
                   </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>Carrito ({totalItems})</p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button variant="ghost" className="w-full justify-start h-10 relative" asChild>
-              <Link href="/carrito">
-                <ShoppingCart className="h-4 w-4" />
-                <span className="ml-3 text-sm">Carrito</span>
-                {totalItems > 0 && (
-                  <Badge variant="secondary" className="ml-auto text-xs h-5">
-                    {totalItems}
-                  </Badge>
-                )}
-              </Link>
-            </Button>
-          )}
-        </div>
+                  {!isCollapsed && item.submenu && (
+                    <Button variant="ghost" size="icon" onClick={() => toggleSection(item.id)} className="ml-1 w-6 h-6">
+                      {expandedSections.includes(item.id) ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
 
-        {/* Footer */}
-        <div className={`p-2 border-t border-gray-200 ${isCollapsed ? "px-1" : ""}`}>
-          {isCollapsed ? (
-            <div className="space-y-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-full h-10">
-                    <Bell className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Notificaciones</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-full h-10">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Configuración</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 px-2 py-1">
-                <div className="h-6 w-6 bg-gray-200 rounded-full flex items-center justify-center">
-                  <User className="h-3 w-3" />
+                {/* Submenu */}
+                {!isCollapsed && item.submenu && expandedSections.includes(item.id) && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    {item.submenu.map((subitem) => (
+                      <Link
+                        key={subitem.href}
+                        href={subitem.href}
+                        className={`flex items-center px-2 py-1.5 text-sm rounded-md transition-colors ${
+                          isActive(subitem.href)
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                        }`}
+                      >
+                        <subitem.icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                        {subitem.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+
+          {/* Footer */}
+          {!isCollapsed && (
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">Usuario</p>
-                  <p className="text-[10px] text-muted-foreground truncate">usuario@email.com</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">Usuario</p>
+                  <p className="text-xs text-gray-500 truncate">usuario@email.com</p>
                 </div>
-              </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="sm" className="flex-1 h-8">
-                  <Bell className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Notif.</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1 h-8">
-                  <Settings className="h-3 w-3 mr-1" />
-                  <span className="text-xs">Config.</span>
-                </Button>
               </div>
             </div>
           )}
         </div>
-      </aside>
-    </TooltipProvider>
+      </div>
+    </>
   )
 }

@@ -107,3 +107,6 @@ export const useCart = create<CartStore>()(
     },
   ),
 )
+
+// Exportación adicional para compatibilidad
+export const useCartStore = useCart

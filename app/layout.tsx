@@ -2,10 +2,8 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import Navbar from "@/components/navbar"
-import MainSidebar from "@/components/main-sidebar"
-import MainBottomNav from "@/components/main-bottom-nav"
-import Footer from "@/components/footer"
+import { MainSidebar } from "@/components/main-sidebar"
+import { MainBottomNav } from "@/components/main-bottom-nav"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,21 +21,13 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={inter.className}>
-        <div className="min-h-screen bg-background">
+        <div className="flex h-screen bg-gray-50">
           {/* Sidebar para desktop */}
           <MainSidebar />
 
-          {/* Navbar superior */}
-          <Navbar />
-
           {/* Contenido principal */}
-          <main className="lg:ml-64 pb-16 lg:pb-0">
-            <div className="container mx-auto px-4 py-6">{children}</div>
-          </main>
-
-          {/* Footer */}
-          <div className="lg:ml-64">
-            <Footer />
+          <div className="flex-1 flex flex-col lg:ml-64">
+            <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">{children}</main>
           </div>
 
           {/* Bottom navigation para móviles */}
