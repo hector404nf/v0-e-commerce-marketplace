@@ -23,6 +23,7 @@ export default function Navbar() {
     { name: "Deportes", href: "/?categoria=deportes" },
     { name: "Belleza", href: "/?categoria=belleza" },
     { name: "Configurar Perfil", href: "/onboarding" },
+    { name: "Admin Panel", href: "/admin" },
     { name: "Iniciar Sesión", href: "/login" },
   ]
 

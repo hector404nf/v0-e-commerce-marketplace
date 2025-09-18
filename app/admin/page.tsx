@@ -1,376 +1,324 @@
 "use client"
 
-import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  ShoppingCart,
   Package,
+  ShoppingCart,
   Users,
-  Star,
+  DollarSign,
   AlertTriangle,
-  BarChart3,
+  Eye,
+  Star,
+  Clock,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Datos simulados para el dashboard
-const dashboardStats = {
-  ventas: {
-    total: 45280.5,
-    cambio: 12.5,
-    tendencia: "up" as const,
-  },
-  pedidos: {
-    total: 156,
-    cambio: -3.2,
-    tendencia: "down" as const,
-  },
-  productos: {
-    total: 45,
-    cambio: 8.1,
-    tendencia: "up" as const,
-  },
-  clientes: {
-    total: 1247,
-    cambio: 15.3,
-    tendencia: "up" as const,
-  },
-}
-
-const pedidosRecientes = [
-  {
-    id: "ORD-001",
-    cliente: "María González",
-    producto: "iPhone 15 Pro",
-    monto: 1299.99,
-    estado: "completado",
-    fecha: "2024-01-15 14:30",
-  },
-  {
-    id: "ORD-002",
-    cliente: "Carlos Ruiz",
-    producto: "MacBook Air M2",
-    monto: 1899.99,
-    estado: "procesando",
-    fecha: "2024-01-15 13:45",
-  },
-  {
-    id: "ORD-003",
-    cliente: "Ana López",
-    producto: "AirPods Pro",
-    monto: 299.99,
-    estado: "enviado",
-    fecha: "2024-01-15 12:20",
-  },
-  {
-    id: "ORD-004",
-    cliente: "Pedro Martín",
-    producto: "iPad Air",
-    monto: 699.99,
-    estado: "pendiente",
-    fecha: "2024-01-15 11:15",
-  },
-]
-
-const productosPopulares = [
-  { nombre: "iPhone 15 Pro", ventas: 45, ingresos: 58495, stock: 12, cambio: 15 },
-  { nombre: "MacBook Air M2", ventas: 23, ingresos: 43697, stock: 8, cambio: -5 },
-  { nombre: "AirPods Pro", ventas: 67, ingresos: 20093, stock: 25, cambio: 22 },
-  { nombre: "iPad Air", ventas: 34, ingresos: 23799, stock: 15, cambio: 8 },
-]
-
-const alertas = [
-  { tipo: "stock", mensaje: "5 productos con stock bajo", urgencia: "media" },
-  { tipo: "pedido", mensaje: "12 pedidos pendientes de procesar", urgencia: "alta" },
-  { tipo: "review", mensaje: "3 reseñas nuevas requieren respuesta", urgencia: "baja" },
-]
+import Link from "next/link"
 
 export default function AdminDashboard() {
-  const [timeRange, setTimeRange] = useState("7d")
+  const stats = [
+    {
+      title: "Ventas del Mes",
+      value: "$12,450",
+      change: "+12.5%",
+      trend: "up",
+      icon: DollarSign,
+    },
+    {
+      title: "Pedidos Totales",
+      value: "156",
+      change: "+8.2%",
+      trend: "up",
+      icon: ShoppingCart,
+    },
+    {
+      title: "Productos Activos",
+      value: "45",
+      change: "+3",
+      trend: "up",
+      icon: Package,
+    },
+    {
+      title: "Clientes",
+      value: "1,234",
+      change: "+15.3%",
+      trend: "up",
+      icon: Users,
+    },
+  ]
 
-  const getEstadoBadge = (estado: string) => {
-    switch (estado) {
-      case "completado":
-        return <Badge className="bg-green-100 text-green-800">Completado</Badge>
-      case "procesando":
-        return <Badge className="bg-yellow-100 text-yellow-800">Procesando</Badge>
-      case "enviado":
-        return <Badge className="bg-blue-100 text-blue-800">Enviado</Badge>
+  const recentOrders = [
+    {
+      id: "ORD-001",
+      customer: "María García",
+      product: "iPhone 14 Pro",
+      amount: "$999",
+      status: "pendiente",
+      time: "Hace 5 min",
+    },
+    {
+      id: "ORD-002",
+      customer: "Carlos López",
+      product: "MacBook Air M2",
+      amount: "$1,299",
+      status: "procesando",
+      time: "Hace 15 min",
+    },
+    {
+      id: "ORD-003",
+      customer: "Ana Martínez",
+      product: "AirPods Pro",
+      amount: "$249",
+      status: "enviado",
+      time: "Hace 1 hora",
+    },
+    {
+      id: "ORD-004",
+      customer: "Luis Rodríguez",
+      product: "iPad Pro",
+      amount: "$799",
+      status: "entregado",
+      time: "Hace 2 horas",
+    },
+  ]
+
+  const topProducts = [
+    {
+      name: "iPhone 14 Pro",
+      sales: 45,
+      revenue: "$44,955",
+      trend: "up",
+    },
+    {
+      name: "MacBook Air M2",
+      sales: 23,
+      revenue: "$29,877",
+      trend: "up",
+    },
+    {
+      name: "AirPods Pro",
+      sales: 67,
+      revenue: "$16,683",
+      trend: "down",
+    },
+    {
+      name: "iPad Pro",
+      sales: 34,
+      revenue: "$27,166",
+      trend: "up",
+    },
+  ]
+
+  const alerts = [
+    {
+      type: "warning",
+      message: "5 productos con stock bajo",
+      action: "Ver productos",
+      href: "/admin/productos?filter=low-stock",
+    },
+    {
+      type: "info",
+      message: "12 pedidos pendientes de procesar",
+      action: "Ver pedidos",
+      href: "/admin/pedidos?status=pendiente",
+    },
+    {
+      type: "success",
+      message: "3 nuevas reseñas positivas",
+      action: "Ver reseñas",
+      href: "/admin/reviews",
+    },
+  ]
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
       case "pendiente":
-        return <Badge className="bg-orange-100 text-orange-800">Pendiente</Badge>
+        return "bg-yellow-100 text-yellow-800"
+      case "procesando":
+        return "bg-blue-100 text-blue-800"
+      case "enviado":
+        return "bg-purple-100 text-purple-800"
+      case "entregado":
+        return "bg-green-100 text-green-800"
       default:
-        return <Badge variant="secondary">{estado}</Badge>
-    }
-  }
-
-  const getAlertIcon = (tipo: string) => {
-    switch (tipo) {
-      case "stock":
-        return <Package className="h-4 w-4" />
-      case "pedido":
-        return <ShoppingCart className="h-4 w-4" />
-      case "review":
-        return <Star className="h-4 w-4" />
-      default:
-        return <AlertTriangle className="h-4 w-4" />
-    }
-  }
-
-  const getAlertColor = (urgencia: string) => {
-    switch (urgencia) {
-      case "alta":
-        return "text-red-600 bg-red-50 border-red-200"
-      case "media":
-        return "text-yellow-600 bg-yellow-50 border-yellow-200"
-      case "baja":
-        return "text-blue-600 bg-blue-50 border-blue-200"
-      default:
-        return "text-gray-600 bg-gray-50 border-gray-200"
+        return "bg-gray-100 text-gray-800"
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Resumen de tu tienda y métricas principales</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Exportar reporte
-          </Button>
-          <Button size="sm">Ver análisis completo</Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">Resumen de tu tienda y métricas importantes</p>
       </div>
 
-      {/* Alertas importantes */}
-      {alertas.length > 0 && (
-        <div className="grid gap-3">
-          {alertas.map((alerta, index) => (
-            <div
-              key={index}
-              className={`flex items-center gap-3 p-3 rounded-lg border ${getAlertColor(alerta.urgencia)}`}
-            >
-              {getAlertIcon(alerta.tipo)}
-              <span className="flex-1 text-sm font-medium">{alerta.mensaje}</span>
-              <Button variant="ghost" size="sm">
-                Ver detalles
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Métricas principales */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat) => (
+          <Card key={stat.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                {stat.trend === "up" ? (
+                  <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                )}
+                <span className={stat.trend === "up" ? "text-green-500" : "text-red-500"}>{stat.change}</span>
+                <span className="ml-1">desde el mes pasado</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Alerts */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Alertas Importantes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {alerts.map((alert, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-sm">{alert.message}</span>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={alert.href}>{alert.action}</Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Orders */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventas Totales</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Pedidos Recientes</span>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/pedidos">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver todos
+                </Link>
+              </Button>
+            </CardTitle>
+            <CardDescription>Últimos pedidos recibidos</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${dashboardStats.ventas.total.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              {dashboardStats.ventas.tendencia === "up" ? (
-                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-              )}
-              <span className={dashboardStats.ventas.tendencia === "up" ? "text-green-600" : "text-red-600"}>
-                {dashboardStats.ventas.cambio > 0 ? "+" : ""}
-                {dashboardStats.ventas.cambio}%
-              </span>
-              <span className="ml-1">vs mes anterior</span>
+            <div className="space-y-4">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{order.customer}</p>
+                    <p className="text-xs text-muted-foreground">{order.product}</p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <p className="text-sm font-medium">{order.amount}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge className={`text-xs ${getStatusColor(order.status)}`}>{order.status}</Badge>
+                      <span className="text-xs text-muted-foreground flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {order.time}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
+        {/* Top Products */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pedidos</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Productos Populares</span>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/productos">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver todos
+                </Link>
+              </Button>
+            </CardTitle>
+            <CardDescription>Productos con mejor rendimiento</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats.pedidos.total}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              {dashboardStats.pedidos.tendencia === "up" ? (
-                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-              )}
-              <span className={dashboardStats.pedidos.tendencia === "up" ? "text-green-600" : "text-red-600"}>
-                {dashboardStats.pedidos.cambio > 0 ? "+" : ""}
-                {dashboardStats.pedidos.cambio}%
-              </span>
-              <span className="ml-1">vs mes anterior</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Productos</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats.productos.total}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">+{dashboardStats.productos.cambio}%</span>
-              <span className="ml-1">vs mes anterior</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardStats.clientes.total}</div>
-            <div className="flex items-center text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-              <span className="text-green-600">+{dashboardStats.clientes.cambio}%</span>
-              <span className="ml-1">vs mes anterior</span>
+            <div className="space-y-4">
+              {topProducts.map((product, index) => (
+                <div key={product.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium">
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.sales} ventas</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{product.revenue}</p>
+                    <div className="flex items-center justify-end">
+                      {product.trend === "up" ? (
+                        <TrendingUp className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Contenido principal con tabs */}
-      <Tabs defaultValue="pedidos" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="pedidos">Pedidos Recientes</TabsTrigger>
-          <TabsTrigger value="productos">Productos Populares</TabsTrigger>
-          <TabsTrigger value="analytics">Analíticas</TabsTrigger>
-        </TabsList>
-
-        {/* Pedidos recientes */}
-        <TabsContent value="pedidos">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Pedidos Recientes</CardTitle>
-              <Button variant="outline" size="sm">
-                Ver todos los pedidos
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {pedidosRecientes.map((pedido) => (
-                  <div key={pedido.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-medium">{pedido.id}</span>
-                        {getEstadoBadge(pedido.estado)}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{pedido.cliente}</p>
-                      <p className="text-sm">{pedido.producto}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${pedido.monto.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">{pedido.fecha}</p>
-                    </div>
-                  </div>
-                ))}
+      {/* Analytics Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resumen de Analíticas</CardTitle>
+          <CardDescription>Métricas clave de rendimiento</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">94.2%</div>
+              <p className="text-sm text-muted-foreground">Tasa de satisfacción</p>
+              <div className="flex items-center justify-center mt-1">
+                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                <span className="text-sm ml-1">4.7/5</span>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Productos populares */}
-        <TabsContent value="productos">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Productos Más Vendidos</CardTitle>
-              <Button variant="outline" size="sm">
-                Gestionar productos
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {productosPopulares.map((producto, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{producto.nombre}</h3>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-sm text-muted-foreground">{producto.ventas} ventas</span>
-                        <span className="text-sm text-muted-foreground">Stock: {producto.stock}</span>
-                        <div className="flex items-center gap-1">
-                          {producto.cambio > 0 ? (
-                            <TrendingUp className="h-3 w-3 text-green-500" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3 text-red-500" />
-                          )}
-                          <span className={`text-xs ${producto.cambio > 0 ? "text-green-600" : "text-red-600"}`}>
-                            {producto.cambio > 0 ? "+" : ""}
-                            {producto.cambio}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${producto.ingresos.toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">Ingresos totales</p>
-                    </div>
-                  </div>
-                ))}
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">3.2%</div>
+              <p className="text-sm text-muted-foreground">Tasa de conversión</p>
+              <div className="flex items-center justify-center mt-1">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <span className="text-sm ml-1 text-green-500">+0.8%</span>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Analíticas */}
-        <TabsContent value="analytics">
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Rendimiento de Ventas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Meta mensual</span>
-                  <span className="font-semibold">75%</span>
-                </div>
-                <Progress value={75} className="h-2" />
-                <p className="text-sm text-muted-foreground">$33,960 de $45,280 objetivo</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Métricas Clave</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Tasa de conversión</span>
-                  <span className="font-semibold">3.2%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Valor promedio del pedido</span>
-                  <span className="font-semibold">$290.26</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Tiempo promedio de entrega</span>
-                  <span className="font-semibold">2.1 días</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Satisfacción del cliente</span>
-                  <span className="font-semibold">4.8/5</span>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">$85.40</div>
+              <p className="text-sm text-muted-foreground">Valor promedio pedido</p>
+              <div className="flex items-center justify-center mt-1">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <span className="text-sm ml-1 text-green-500">+$12.30</span>
+              </div>
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }

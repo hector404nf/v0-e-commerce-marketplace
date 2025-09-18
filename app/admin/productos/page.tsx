@@ -1,121 +1,116 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Search,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
   Edit,
   Trash2,
   Eye,
-  MoreHorizontal,
+  Download,
+  Upload,
   Package,
   AlertTriangle,
   CheckCircle,
+  XCircle,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Upload,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Checkbox } from "@/components/ui/checkbox"
+import Link from "next/link"
+import Image from "next/image"
 import { productos } from "@/lib/data"
 
-export default function AdminProductosPage() {
-  const [busqueda, setBusqueda] = useState("")
-  const [filtroCategoria, setFiltroCategoria] = useState("todas")
-  const [filtroStock, setFiltroStock] = useState("todos")
-  const [productosSeleccionados, setProductosSeleccionados] = useState<number[]>([])
-  const [imagenesActuales, setImagenesActuales] = useState<{ [key: number]: number }>({})
+export default function AdminProductsPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
+  const [currentImageIndex, setCurrentImageIndex] = useState<{ [key: string]: number }>({})
 
-  // Filtrar productos de la tienda (simulamos que es tienda ID 1)
-  const productostienda = productos.filter((p) => p.tiendaId === 1)
-
-  const productosFiltrados = productostienda.filter((producto) => {
-    const coincideBusqueda =
-      producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      producto.categoria.toLowerCase().includes(busqueda.toLowerCase()) ||
-      producto.marca.toLowerCase().includes(busqueda.toLowerCase())
-
-    const coincideCategoria = filtroCategoria === "todas" || producto.categoria === filtroCategoria
-
-    const coincideStock =
-      filtroStock === "todos" ||
-      (filtroStock === "disponible" && producto.stock > 0) ||
-      (filtroStock === "bajo" && producto.stock > 0 && producto.stock < 10) ||
-      (filtroStock === "agotado" && producto.stock === 0)
-
-    return coincideBusqueda && coincideCategoria && coincideStock
+  const filteredProducts = productos.filter((product) => {
+    const matchesSearch = product.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || product.categoria === selectedCategory
+    return matchesSearch && matchesCategory
   })
 
-  const categorias = [...new Set(productostienda.map((p) => p.categoria))]
+  const categories = Array.from(new Set(productos.map((p) => p.categoria)))
 
-  const getStockStatus = (stock: number, tipoVenta: string) => {
-    if (tipoVenta === "delivery") return { status: "Disponible", color: "bg-blue-100 text-blue-800" }
-    if (stock === 0) return { status: "Agotado", color: "bg-red-100 text-red-800" }
-    if (stock < 10) return { status: "Stock bajo", color: "bg-yellow-100 text-yellow-800" }
-    return { status: "Disponible", color: "bg-green-100 text-green-800" }
+  const getStockStatus = (stock: number) => {
+    if (stock === 0) return { label: "Agotado", color: "bg-red-100 text-red-800", icon: XCircle }
+    if (stock < 10) return { label: "Stock Bajo", color: "bg-yellow-100 text-yellow-800", icon: AlertTriangle }
+    return { label: "Disponible", color: "bg-green-100 text-green-800", icon: CheckCircle }
   }
 
-  const getImagenPrincipal = (producto: any) => {
-    const imagenes = producto.imagenes || (producto.imagen ? [producto.imagen] : [])
-    const imagenActual = imagenesActuales[producto.id] || 0
-    return imagenes[imagenActual] || "/placeholder.svg"
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProducts((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId],
+    )
   }
 
-  const getImagenes = (producto: any) => {
-    return producto.imagenes || (producto.imagen ? [producto.imagen] : [])
-  }
-
-  const cambiarImagen = (productoId: number, direccion: "siguiente" | "anterior", imagenes: string[]) => {
-    setImagenesActuales((prev) => {
-      const actual = prev[productoId] || 0
-      let nueva = actual
-
-      if (direccion === "siguiente") {
-        nueva = (actual + 1) % imagenes.length
-      } else {
-        nueva = (actual - 1 + imagenes.length) % imagenes.length
-      }
-
-      return { ...prev, [productoId]: nueva }
-    })
-  }
-
-  const toggleProductoSeleccionado = (id: number) => {
-    setProductosSeleccionados((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
-  }
-
-  const seleccionarTodos = () => {
-    if (productosSeleccionados.length === productosFiltrados.length) {
-      setProductosSeleccionados([])
+  const handleSelectAll = () => {
+    if (selectedProducts.length === filteredProducts.length) {
+      setSelectedProducts([])
     } else {
-      setProductosSeleccionados(productosFiltrados.map((p) => p.id))
+      setSelectedProducts(filteredProducts.map((p) => p.id))
     }
   }
 
-  const estadisticas = {
-    total: productostienda.length,
-    disponibles: productostienda.filter((p) => p.stock > 0 || p.tipoVenta === "delivery").length,
-    stockBajo: productostienda.filter((p) => p.stock > 0 && p.stock < 10 && p.tipoVenta !== "delivery").length,
-    agotados: productostienda.filter((p) => p.stock === 0 && p.tipoVenta !== "delivery").length,
+  const nextImage = (productId: string, totalImages: number) => {
+    setCurrentImageIndex((prev) => ({
+      ...prev,
+      [productId]: ((prev[productId] || 0) + 1) % totalImages,
+    }))
+  }
+
+  const prevImage = (productId: string, totalImages: number) => {
+    setCurrentImageIndex((prev) => ({
+      ...prev,
+      [productId]: ((prev[productId] || 0) - 1 + totalImages) % totalImages,
+    }))
+  }
+
+  const stats = {
+    total: productos.length,
+    available: productos.filter((p) => p.stock > 10).length,
+    lowStock: productos.filter((p) => p.stock > 0 && p.stock <= 10).length,
+    outOfStock: productos.filter((p) => p.stock === 0).length,
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Gestión de Productos</h1>
-          <p className="text-muted-foreground">Administra tu inventario y catálogo de productos</p>
+          <p className="text-muted-foreground">Administra tu inventario y productos</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2">
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
             Importar
@@ -127,276 +122,262 @@ export default function AdminProductosPage() {
           <Button asChild>
             <Link href="/admin/productos/nuevo">
               <Plus className="h-4 w-4 mr-2" />
-              Nuevo Producto
+              Añadir Producto
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Estadísticas rápidas */}
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium">Total</span>
+              <Package className="h-4 w-4 text-blue-500" />
+              <div>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-muted-foreground">Total productos</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">{estadisticas.total}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium">Disponibles</span>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <div>
+                <p className="text-2xl font-bold">{stats.available}</p>
+                <p className="text-xs text-muted-foreground">Disponibles</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">{estadisticas.disponibles}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              <span className="text-sm font-medium">Stock Bajo</span>
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <div>
+                <p className="text-2xl font-bold">{stats.lowStock}</p>
+                <p className="text-xs text-muted-foreground">Stock bajo</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">{estadisticas.stockBajo}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-red-600" />
-              <span className="text-sm font-medium">Agotados</span>
+              <XCircle className="h-4 w-4 text-red-500" />
+              <div>
+                <p className="text-2xl font-bold">{stats.outOfStock}</p>
+                <p className="text-xs text-muted-foreground">Agotados</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold mt-1">{estadisticas.agotados}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filtros y búsqueda */}
+      {/* Filters and Search */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar productos por nombre, categoría o marca..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar productos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-
-            <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Todas las categorías" />
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Categoría" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todas">Todas las categorías</SelectItem>
-                {categorias.map((categoria) => (
-                  <SelectItem key={categoria} value={categoria}>
-                    {categoria}
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
-            <Select value={filtroStock} onValueChange={setFiltroStock}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Estado del stock" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="disponible">Disponible</SelectItem>
-                <SelectItem value="bajo">Stock bajo</SelectItem>
-                <SelectItem value="agotado">Agotado</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Acciones masivas */}
-      {productosSeleccionados.length > 0 && (
-        <Card className="border-primary">
+      {/* Bulk Actions */}
+      {selectedProducts.length > 0 && (
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{productosSeleccionados.length} producto(s) seleccionado(s)</span>
-              <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {selectedProducts.length} producto(s) seleccionado(s)
+              </span>
+              <div className="flex gap-2">
                 <Button variant="outline" size="sm">
-                  Editar masivo
+                  Editar en lote
                 </Button>
                 <Button variant="outline" size="sm">
-                  Cambiar estado
+                  Cambiar categoría
                 </Button>
-                <Button variant="destructive" size="sm">
-                  Eliminar seleccionados
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción eliminará {selectedProducts.length} producto(s) permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction>Eliminar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Lista de productos */}
+      {/* Products Table */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Productos ({productosFiltrados.length})</CardTitle>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              checked={productosSeleccionados.length === productosFiltrados.length && productosFiltrados.length > 0}
-              onCheckedChange={seleccionarTodos}
-            />
-            <span className="text-sm text-muted-foreground">Seleccionar todos</span>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Productos ({filteredProducts.length})</CardTitle>
+              <CardDescription>Lista de todos tus productos</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">Seleccionar todo</span>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {productosFiltrados.map((producto) => {
-              const imagenes = getImagenes(producto)
-              const tieneMultiplesImagenes = imagenes.length > 1
-              const stockInfo = getStockStatus(producto.stock, producto.tipoVenta)
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <div className="min-w-full">
+              {filteredProducts.map((product) => {
+                const stockStatus = getStockStatus(product.stock)
+                const currentIndex = currentImageIndex[product.id] || 0
+                const images = product.imagenes || [product.imagen]
 
-              return (
-                <div key={producto.id} className="border rounded-lg p-4">
-                  <div className="flex items-start gap-4">
-                    {/* Checkbox de selección */}
-                    <Checkbox
-                      checked={productosSeleccionados.includes(producto.id)}
-                      onCheckedChange={() => toggleProductoSeleccionado(producto.id)}
-                      className="mt-2"
-                    />
-
-                    {/* Imagen del producto */}
-                    <div className="relative h-20 w-20 lg:h-24 lg:w-24 flex-shrink-0">
-                      <Image
-                        src={getImagenPrincipal(producto) || "/placeholder.svg"}
-                        alt={producto.nombre}
-                        fill
-                        className="object-cover rounded-md"
+                return (
+                  <div key={product.id} className="border-b border-gray-200 p-4 hover:bg-gray-50">
+                    <div className="flex items-center gap-4">
+                      <Checkbox
+                        checked={selectedProducts.includes(product.id)}
+                        onCheckedChange={() => handleSelectProduct(product.id)}
                       />
 
-                      {/* Controles para múltiples imágenes */}
-                      {tieneMultiplesImagenes && (
-                        <>
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="absolute -left-2 top-1/2 transform -translate-y-1/2 h-6 w-6 bg-white/80 hover:bg-white/90"
-                            onClick={() => cambiarImagen(producto.id, "anterior", imagenes)}
-                          >
-                            <ChevronLeft className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="absolute -right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 bg-white/80 hover:bg-white/90"
-                            onClick={() => cambiarImagen(producto.id, "siguiente", imagenes)}
-                          >
-                            <ChevronRight className="h-3 w-3" />
-                          </Button>
-
-                          {/* Indicador de imagen */}
-                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-black/70 text-white text-xs px-1 rounded">
-                            {(imagenesActuales[producto.id] || 0) + 1}/{imagenes.length}
+                      {/* Product Image */}
+                      <div className="relative w-16 h-16 flex-shrink-0">
+                        <Image
+                          src={images[currentIndex] || "/placeholder.svg"}
+                          alt={product.nombre}
+                          fill
+                          className="object-cover rounded-lg"
+                        />
+                        {images.length > 1 && (
+                          <div className="absolute inset-0 flex items-center justify-between">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 bg-black/50 hover:bg-black/70 text-white"
+                              onClick={() => prevImage(product.id, images.length)}
+                            >
+                              <ChevronLeft className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 bg-black/50 hover:bg-black/70 text-white"
+                              onClick={() => nextImage(product.id, images.length)}
+                            >
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
                           </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Información del producto */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-lg truncate">{producto.nombre}</h3>
-                            <Badge className={stockInfo.color}>{stockInfo.status}</Badge>
-                            {imagenes.length > 1 && (
-                              <Badge variant="outline" className="text-xs">
-                                {imagenes.length} fotos
-                              </Badge>
-                            )}
-                            {producto.descuento > 0 && (
-                              <Badge className="bg-green-100 text-green-800">-{producto.descuento}%</Badge>
-                            )}
+                        )}
+                        {images.length > 1 && (
+                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
+                            <span className="text-xs bg-black/70 text-white px-1 rounded">
+                              {currentIndex + 1}/{images.length}
+                            </span>
                           </div>
+                        )}
+                      </div>
 
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{producto.descripcion}</p>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                            <div>
-                              <span className="font-medium">Precio:</span> ${producto.precio.toFixed(2)}
-                            </div>
-                            <div>
-                              <span className="font-medium">Categoría:</span> {producto.categoria}
-                            </div>
-                            <div>
-                              <span className="font-medium">Marca:</span> {producto.marca}
-                            </div>
-                            <div>
-                              <span className="font-medium">Stock:</span>{" "}
-                              {producto.tipoVenta === "delivery" ? "∞" : producto.stock}
-                            </div>
+                      {/* Product Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div>
+                            <h3 className="font-medium truncate">{product.nombre}</h3>
+                            <p className="text-sm text-muted-foreground">{product.categoria}</p>
                           </div>
-                        </div>
-
-                        {/* Acciones */}
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/productos/${producto.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>Duplicar producto</DropdownMenuItem>
-                              <DropdownMenuItem>Cambiar estado</DropdownMenuItem>
-                              <DropdownMenuItem>Ver estadísticas</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="font-medium">${product.precio}</p>
+                              <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
+                            </div>
+                            <Badge className={stockStatus.color}>
+                              <stockStatus.icon className="h-3 w-3 mr-1" />
+                              {stockStatus.label}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
+
+                      {/* Actions */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href={`/productos/${product.id}`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver producto
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Package className="h-4 w-4 mr-2" />
+                            Gestionar stock
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {productosFiltrados.length === 0 && (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron productos</h3>
-              <p className="text-muted-foreground mb-4">
-                {busqueda || filtroCategoria !== "todas" || filtroStock !== "todos"
-                  ? "Intenta ajustar los filtros de búsqueda"
-                  : "Comienza añadiendo tu primer producto"}
-              </p>
-              <Button asChild>
-                <Link href="/admin/productos/nuevo">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir producto
-                </Link>
-              </Button>
+                )
+              })}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>
